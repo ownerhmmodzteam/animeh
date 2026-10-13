@@ -1,16 +1,21 @@
 {
-  "name": "nest-anime",
-  "version": "1.1.0",
+  "name": "nest-nime",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "lint": "next lint"
   },
   "dependencies": {
-    "next": "14.2.31",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "cheerio": "^1.0.0"
+    "next": "13.4.19",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "10.4.15",
+    "postcss": "8.4.28",
+    "tailwindcss": "3.3.3"
   }
 }
