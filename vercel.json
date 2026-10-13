@@ -1,5 +1,7 @@
 {
   "functions": {
-    "pages/api/anime.js": { "maxDuration": 60 }
+    "pages/api/anime.js": {
+      "maxDuration": 60
+    }
   }
 }

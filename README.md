@@ -1,32 +1,24 @@
-# Nest Anime
+# Nest Anime — Multi-source
 
-Modern dark-theme anime catalog built with Next.js API routes and designed for Vercel Serverless Functions. The project uses the three scraper scripts supplied with the request.
+Next.js anime catalog designed for Vercel Serverless. All available scraper providers are queried in parallel for latest and search results; provider names are not shown in the UI. Provider identity is kept internally per result so detail and episode requests use the correct scraper.
 
-## Run locally
+## Local
 
-Requires Node.js 18.18+.
+Requires Node.js 18.18 or newer.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000.
+## Vercel
 
-## Deploy to Vercel
+Set the Vercel Root Directory to the folder containing this `package.json`, `pages/`, and `lib/`. Use the Next.js preset, `npm run build`, and the default output directory. Install Command may be left at Vercel's automatic default, or set to `npm install`.
 
-Import this project/repository into Vercel. Framework preset: Next.js. Build command: `npm run build`. No environment variables are required. The API function has a 60-second maximum duration configured in `vercel.json`; actual limits depend on the Vercel plan.
+## Important
 
-## API
+Scraper availability depends on upstream websites, anti-bot behavior, and serverless time limits. Latest listing is supported by the providers that expose a latest/list command; search queries are sent to every provider that supports search. If one provider fails, successful providers still populate the catalog. No provider name is exposed in the interface.
 
-- `/api/anime?source=mirainime&action=latest`
-- `/api/anime?source=mirainime&action=search&q=naruto`
-- `/api/anime?source=mirainime&action=detail&url=<slug-or-url>`
-- `/api/anime?source=mirainime&action=stream&url=<episode-url>`
-- `source` can be `mirainime`, `animesail`, or `animeindo`.
+Image loading uses async decoding, eager loading for the first visible cards, and lazy loading for later cards. Broken images are hidden so the card layout remains usable.
 
-Scrapers are third-party website parsers, so upstream markup, rate limits, anti-bot systems, CORS rules, server availability, and Vercel execution limits may affect results. Verify you have permission to access and display content from each source. Do not use this project to bypass access controls.
-
-## Player behavior
-
-The UI detects direct video URLs and renders a custom HTML5 player with centered play/pause, 10-second rewind/forward, speed controls, and a quality selector. Quality switching is only meaningful when the scraper provides alternate quality URLs; the UI does not transcode or manufacture alternate resolutions. When the scraper returns an iframe embed, it uses the iframe directly without wrapping it in the custom video player. Some providers restrict iframe embedding or playback in external sites.
+The custom player is used only for direct video URLs; iframe embeds are shown as iframes. Quality options are only available when the scraper actually returns multiple quality URLs.
