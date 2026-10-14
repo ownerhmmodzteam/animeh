@@ -6,9 +6,13 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "vercel dev"
+    "dev": "node server.js",
+    "dev:vercel": "vercel dev",
+    "check": "node --check server.js && node --check lib/anime-service.js && node --check scrapers/mirainime.js && node --check scrapers/animesail.js && node --check scrapers/animeindo-scrape-muxs37rp.js && node --check api/health.js && node --check api/anime/catalog.js && node --check api/anime/search.js && node --check api/anime/detail.js && node --check api/anime/episode.js && node --check api/anime/genres.js"
   },
-  "engines": { "node": "22.x" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "axios": "^1.7.9",
     "cheerio": "^1.0.0",

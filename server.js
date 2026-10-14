@@ -7,6 +7,7 @@ app.disable('x-powered-by');
 app.get('/api/health', service.health);
 app.get('/api/anime/catalog', service.catalog);
 app.get('/api/anime/search', service.search);
+app.get('/api/anime/genres', service.genres);
 app.get('/api/anime/detail', service.detail);
 app.get('/api/anime/episode', service.episode);
 app.use(express.static(__dirname, { index: 'index.html', dotfiles: 'ignore' }));

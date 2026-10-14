@@ -343,6 +343,9 @@
           .hm-content-wrap { max-width:1180px; padding-left:28px; padding-right:28px; }
           #hmGridAnimeLatest { grid-auto-columns:calc((100% - 36px) / 4); }
         }
+        .hm-stream-video { background:#000; object-fit:contain; }
+        .hm-stream-player { position:relative; overflow:hidden; }
+        .hm-stream-iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
         .hm-anime-card { transition: transform .18s ease, opacity .18s ease; }
         .hm-anime-card:hover { transform:translateY(-3px); }
         @media (prefers-reduced-motion: reduce) { .hm-anime-card { transition:none; } }
@@ -470,9 +473,11 @@
             <div class="hm-content-wrap">
                 <div class="hm-stream-player" id="hmStreamPlayerBox">
                     <div class="hm-iframe-blocker hm-interactive" id="hmStreamBlocker" onclick="playIframe()"><i class="ph-fill ph-play-circle" style="font-size: 50px; color: var(--brand-primary); filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));"></i></div>
-                    <iframe id="hmStreamIframe" class="hm-stream-iframe" allowfullscreen allow="autoplay; fullscreen"></iframe>
+                    <iframe id="hmStreamIframe" class="hm-stream-iframe" allowfullscreen allow="autoplay; fullscreen; picture-in-picture" referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                    <video id="hmStreamVideo" class="hm-stream-video" controls playsinline preload="metadata" style="display:none;background:#000;width:100%;height:100%;position:absolute;inset:0;"></video>
                     <div class="hm-fullscreen-btn hm-interactive" id="hmFullscreenBtn" onclick="hmToggleFullscreen()"><i class="ph-bold ph-corners-out" id="hmFullscreenIcon"></i></div>
                 </div>
+                <div id="hmPlayerHint" class="hm-empty" style="display:none;margin:-12px 0 18px;padding:12px;">Video belum tampil? Coba sumber lain atau buka sumber di tab baru.</div>
                 <div style="display:flex; justify-content:space-between; gap:12px; margin-bottom: 24px;">
                     <button class="hm-btn-secondary hm-interactive" id="btnPrevEp" onclick="hmNavPrev()" style="flex:1; display:none;"><i class="ph-bold ph-caret-left"></i> Prev</button>
                     <button class="hm-btn-secondary hm-interactive" id="btnNextEp" onclick="hmNavNext()" style="flex:1; display:none;">Next <i class="ph-bold ph-caret-right"></i></button>
@@ -535,11 +540,20 @@
 
         const API_BASE = (typeof CONFIG_SISTEM !== 'undefined' && CONFIG_SISTEM.api_base) ? CONFIG_SISTEM.api_base : "https://www.sankavollerei.web.id";
         const HYBRID_API_BASE = (typeof CONFIG_SISTEM !== 'undefined' && CONFIG_SISTEM.hybrid_api_base) ? CONFIG_SISTEM.hybrid_api_base.replace(/\/$/, '') : '';
-        async function hybridFetch(path, params = {}) {
+        async function hybridFetch(path, params = {}, timeoutMs = 12000) {
             if (!HYBRID_API_BASE && location.protocol === 'file:') return null;
             const url = new URL((HYBRID_API_BASE || location.origin) + path);
             Object.entries(params).forEach(([k,v]) => { if(v !== undefined && v !== null && v !== '') url.searchParams.set(k,v); });
-            try { const r = await fetch(url, {headers:{'Accept':'application/json'}}); if(!r.ok) return null; return await r.json(); } catch(e) { return null; }
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+                const r = await fetch(url, { signal:controller.signal, headers:{'Accept':'application/json'} });
+                let body = null;
+                try { body = await r.json(); } catch(_) {}
+                if (body && typeof body === 'object') body._httpStatus = r.status;
+                return body;
+            } catch(e) { return null; }
+            finally { clearTimeout(timer); }
         }
         
         let cachedGenres = [];
@@ -570,6 +584,8 @@
         let comicReviewRef = null;
         let comicRating = 0;
         let pendingIframeUrl = '';
+        let currentHybridSources = [];
+        let playerHintTimer = null;
         let diTimeout;
 
         let currentPage = { ongoing: 1, completed: 1, manhwa: 1, search: 1 };
@@ -633,7 +649,7 @@
 
         function getImageUrl(item, fallback) {
             if(!item || typeof item !== 'object') return fallback || '';
-            const image = item.poster || item.cover_portrait || item.image || item.cover || item.thumbnail || item.thumb || item.cover_url || item.image_url || item.img || fallback || '';
+            const image = item.poster || item.posterUrl || item.poster_url || item.cover_portrait || item.image || item.imageUrl || item.image_url || item.cover || item.cover_url || item.thumbnail || item.thumbnail_url || item.thumb || item.img || item.images?.poster || fallback || '';
             return typeof image === 'object' ? (image.url || image.src || image.large || image.medium || '') : String(image);
         }
 
@@ -679,8 +695,58 @@
             });
         }
 
+        function episodeSeasonFromItem(ep) {
+            if(!ep || typeof ep !== 'object') return '';
+            for(const key of ['season','seasonNumber','season_number','seasonNo','season_no']) {
+                const value=ep[key]; if(value===undefined||value===null||value==='') continue;
+                const match=String(typeof value==='object'?(value.number||value.name||value.title||''):value).match(/\d+/); if(match) return match[0];
+            }
+            const text=`${ep.title||ep.name||''} ${ep.href||ep.url||ep.slug||''}`;
+            const match=text.match(/season[\s_/-]*(\d+)/i)||text.match(/s(\d{1,2})[\s_-]*e\d+/i);
+            return match?match[1]:'';
+        }
+
+        function episodeNumberFromItem(ep, index) {
+            if(!ep || typeof ep !== 'object') {
+                const raw = String(ep ?? '').trim();
+                const m = raw.match(/(?:episode|ep\.?|episod)\s*[-:#.]?\s*(\d+(?:\.\d+)?)/i) || raw.match(/\/(?:episode|ep)[/-](\d+(?:\.\d+)?)(?:\/|$|[?#])/i);
+                return m ? Number(m[1]) : null;
+            }
+            for(const key of ['episode','episode_number','episodeNumber','number','ep','eps','no']) {
+                const raw = ep[key];
+                if(raw === null || raw === undefined || raw === '' || typeof raw === 'object') continue;
+                const str = String(raw).trim();
+                if(/^\d+(?:\.\d+)?$/.test(str)) return Number(str);
+                const m = str.match(/(?:episode|ep\.?|episod)\s*[-:#.]?\s*(\d+(?:\.\d+)?)/i);
+                if(m) return Number(m[1]);
+            }
+            const title = String(ep.title || ep.name || ep.label || '');
+            const tm = title.match(/(?:episode|ep\.?|episod)\s*[-:#.]?\s*(\d+(?:\.\d+)?)/i);
+            if(tm) return Number(tm[1]);
+            const link = String(ep.href || ep.url || ep.slug || ep.link || ep.path || '');
+            const um = link.match(/\/(?:episode|ep)[/-](\d+(?:\.\d+)?)(?:\/|$|[?#])/i) || link.match(/(?:episode|ep)[-_](\d+(?:\.\d+)?)(?:\/|$|[?#])/i);
+            return um ? Number(um[1]) : null;
+        }
+
         function normalizeEpisodes(data) {
-            return getArrayField(data, ['episodeList', 'episodes', 'episode_list', 'episode', 'list']);
+            const rawList = getArrayField(data, ['episodeList', 'episodes', 'episode_list', 'episode_list', 'episode', 'list']);
+            const out = [], seenNumbers = new Set(), seenUrls = new Set();
+            rawList.forEach((raw, index) => {
+                const ep = raw && typeof raw === 'object' ? raw : {title:String(raw ?? '')};
+                const number = episodeNumberFromItem(ep, index);
+                const href = String(ep.href || ep.url || ep.slug || ep.link || ep.path || (typeof raw === 'string' && /^https?:\/\//i.test(raw) ? raw : '') || '').trim();
+                const cleanUrl = href.toLowerCase().replace(/[?#].*$/, '').replace(/\/$/, '');
+                const season=episodeSeasonFromItem(ep);
+                const numberKey=number!==null?`${season?'s'+season+':':''}${number}`:'';
+                if(number !== null && seenNumbers.has(numberKey)) return;
+                if(number === null && cleanUrl && seenUrls.has(cleanUrl)) return;
+                if(number !== null) seenNumbers.add(numberKey);
+                if(cleanUrl) seenUrls.add(cleanUrl);
+                const title = String(ep.title || ep.name || ep.label || (number !== null ? `Episode ${number}` : `Episode ${index + 1}`));
+                out.push({...ep, title, episode:number, eps:number, number, season:season||ep.season||'', href:href || String(number ?? index + 1), url:href || String(number ?? index + 1), __hasEpisodeNumber:number !== null});
+            });
+            if(out.length && out.every(ep => ep.__hasEpisodeNumber)) out.sort((a,b) => (Number(b.season||0)-Number(a.season||0)) || (b.episode-a.episode));
+            return out.map(({__hasEpisodeNumber, ...ep}) => ep);
         }
 
         function normalizeChapters(data) {
@@ -765,34 +831,35 @@
         }
 
         function getBadgeText(o, type) {
-            if(!o || typeof o !== 'object') return '?';
-            let label = '';
-            if (o.latest_chapter) label = o.latest_chapter;
-            else if (o.latest_episode) label = o.latest_episode;
-            else if (o.chapter) label = typeof o.chapter === 'object' ? (o.chapter.name || o.chapter.title || '') : o.chapter;
-            else if (o.episode) label = typeof o.episode === 'object' ? (o.episode.name || o.episode.title || '') : o.episode;
-            else if (o.episodes) label = Array.isArray(o.episodes) ? o.episodes.length : o.episodes;
-            else if (o.eps) label = Array.isArray(o.eps) ? o.eps.length : o.eps;
-            else if (o.chapters && Array.isArray(o.chapters) && o.chapters.length) label = o.chapters.length;
-            else if (o.chapter_list && Array.isArray(o.chapter_list) && o.chapter_list.length) label = o.chapter_list.length;
-            else if (o.chapterList && Array.isArray(o.chapterList) && o.chapterList.length) label = o.chapterList.length;
-            else if (o.list && Array.isArray(o.list) && o.list.length) label = o.list.length;
-            else if (o.status) label = o.status;
-            else label = '?';
-
-            label = String(label).trim();
-            if(label === '[object Object]' || label === '') return '?';
-            
-            if (label !== '?' && !label.toLowerCase().includes('ep') && !label.toLowerCase().includes('ch')) {
-                if (type === 'anime') {
-                    if (/^\d+(\.\d+)?$/.test(label)) label = 'Ep ' + label;
-                    else if (label.toLowerCase().includes('episode')) label = label.replace(/episode/i, 'Ep').trim();
-                } else {
-                    if (/^\d+(\.\d+)?$/.test(label)) label = 'Ch ' + label;
-                    else if (label.toLowerCase().includes('chapter')) label = label.replace(/chapter/i, 'Ch').trim();
+            if(!o || typeof o !== 'object') return type === 'anime' ? 'TV' : 'COMIC';
+            let value = '';
+            const candidates = type === 'anime'
+                ? ['latest_episode','latestEpisode','latest_ep','latestEpisodeTitle','episode','eps','episode_count','total_episodes','totalEpisodesCount','status','type','format']
+                : ['latest_chapter','latestChapter','chapter','chapters','chapter_count','status','type'];
+            for(const key of candidates) {
+                const raw = o[key];
+                if(raw === undefined || raw === null || raw === '') continue;
+                if(Array.isArray(raw)) { if(raw.length) { value = String(raw.length); break; } continue; }
+                if(typeof raw === 'object') {
+                    const nested = raw.title || raw.name || raw.label || raw.episode || raw.number || '';
+                    if(nested !== '') { value = String(nested); break; }
+                    continue;
                 }
+                value = String(raw).trim();
+                if(value && value !== '[object Object]') break;
             }
-            return label;
+            if(!value || value === '?' || value.toLowerCase() === 'undefined' || value.toLowerCase() === 'null') {
+                const fmt = String(o.format || o.type || '').toLowerCase();
+                if(/movie|film/.test(fmt)) return 'MOVIE';
+                if(/ova|ona|special/.test(fmt)) return 'OVA';
+                return type === 'anime' ? 'TV' : 'COMIC';
+            }
+            const number = value.match(/(?:episode|ep\.?|episod|^)(?:\s*[-:#.]?\s*)(\d+(?:\.\d+)?)(?:\b|$)/i);
+            if(type === 'anime' && number && Number.isFinite(Number(number[1]))) return 'Ep ' + number[1];
+            if(type !== 'anime' && number && Number.isFinite(Number(number[1]))) return 'Ch ' + number[1];
+            if(type === 'anime' && /^movie$/i.test(value)) return 'MOVIE';
+            if(type === 'anime' && /ongoing|airing|sedang tayang/i.test(value)) return 'ONGOING';
+            return value.length > 12 ? value.slice(0, 11) + '…' : value;
         }
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -828,6 +895,8 @@
             if(viewId !== 'stream') {
                 const iframe = document.getElementById('hmStreamIframe');
                 if(iframe) iframe.src = '';
+                const video = document.getElementById('hmStreamVideo'); if(video) { video.pause(); video.removeAttribute('src'); video.load(); video.style.display='none'; }
+                const hint = document.getElementById('hmPlayerHint'); if(hint) hint.style.display='none';
                 const blocker = document.getElementById('hmStreamBlocker');
                 if(blocker) blocker.style.display = 'flex';
             }
@@ -1016,7 +1085,7 @@
         function renderAnimeCard(anime, source = 'default') {
             anime = anime && typeof anime === 'object' ? anime : {};
             const actualSource = anime._source || source || 'default';
-            const targetSlug = anime._slug || getItemIdentity(anime);
+            const targetSlug = actualSource === 'scraper:animeindo' ? (anime.url || anime.href || anime._slug || getItemIdentity(anime)) : (anime._slug || getItemIdentity(anime));
             const title = escapeHTML(anime.title || anime.name || 'Untitled');
             const poster = escapeHTML(getImageUrl(anime, 'https://placehold.co/200x300/0F1115/9182FF?text=Nest'));
             let rawScore = anime.score ?? anime.rating ?? '';
@@ -1035,83 +1104,100 @@
             </div>`;
         }
 
+        const NS_HOME_CACHE_KEY = 'nest_stream_home_catalog_v2';
+        function readHomeCatalogCache() {
+            try {
+                const parsed = JSON.parse(localStorage.getItem(NS_HOME_CACHE_KEY) || 'null');
+                return parsed && typeof parsed === 'object' ? { ongoing:Array.isArray(parsed.ongoing)?parsed.ongoing:[], latest:Array.isArray(parsed.latest)?parsed.latest:[] } : {ongoing:[],latest:[]};
+            } catch(_) { return {ongoing:[],latest:[]}; }
+        }
+        function writeHomeCatalogCache(ongoing, latest) {
+            try {
+                const compact = list => (list || []).slice(0,70).map(a => ({
+                    title:a.title || a.name || '', name:a.name || a.title || '', slug:a.slug || a._slug || '', _slug:a._slug || a.slug || '',
+                    url:a.url || a.href || '', href:a.href || a.url || '', poster:a.poster || a.image || a.thumbnail || '', image:a.image || a.poster || a.thumbnail || '',
+                    score:a.score || a.rating || '', rating:a.rating || a.score || '', status:a.status || '', type:a.type || '',
+                    latest_episode:a.latest_episode || a.latestEpisode || a.episode || '', _source:a._source || 'default', _provider:a._provider || a._source || 'default'
+                }));
+                localStorage.setItem(NS_HOME_CACHE_KEY, JSON.stringify({ savedAt:Date.now(), ongoing:compact(ongoing), latest:compact(latest) }));
+            } catch(_) {}
+        }
+        function renderHomeCatalog(ongoing, latest, state = {}) {
+            const heroSlider = document.getElementById('hmHeroSlider');
+            const ongoingGrid = document.getElementById('hmGridOngoing');
+            const latestGrid = document.getElementById('hmGridAnimeLatest');
+            ongoing = mergeAndShuffle([ongoing || []]);
+            latest = mergeAndShuffle([latest || []]);
+            const heroItems = ongoing.slice(0,5);
+            if(heroSlider && heroItems.length) heroSlider.innerHTML = heroItems.map(a => {
+                const slug = a._slug || getItemIdentity(a), source = a._source || 'default';
+                const scoreNum = parseFloat(String(a.score ?? a.rating ?? '').replace(',', '.'));
+                const score = Number.isFinite(scoreNum) && scoreNum > 0 ? scoreNum.toFixed(1) : '';
+                const poster = escapeHTML(getImageUrl(a, 'https://placehold.co/500x280/101116/B7AAFF?text=Nest+Stream'));
+                if(!slug) return '';
+                return `<div class="hm-hero-slide hm-interactive" onclick="hmLoadDetail(decodeURIComponent('${makeSafe(slug)}'), decodeURIComponent('${makeSafe(source)}'))"><img src="${poster}" class="hm-hero-img" loading="lazy" onerror="this.src='https://placehold.co/500x280/101116/B7AAFF?text=Nest+Stream'"><div class="hm-hero-overlay"><div class="hm-hero-tag"><i class="ph-bold ph-sparkle"></i> Pilihan Anime ${score ? '&nbsp; | &nbsp;'+score : ''}</div><div class="hm-hero-title">${escapeHTML(a.title || a.name || '')}</div></div></div>`;
+            }).join('') || (heroSlider && !state.loading ? `<div class="hm-empty">${state.error || 'Pilihan anime belum tersedia.'}<br><button class="hm-btn-secondary hm-interactive" onclick="hmLoadHomeData()" style="margin-top:12px">Coba Lagi</button></div>` : '');
+            const dots = document.getElementById('hmSliderDots');
+            if(dots) dots.innerHTML = heroItems.map((_,i)=>`<div class="hm-dot ${i===0?'active':''}"></div>`).join('');
+            if(heroSlider) heroSlider.onscroll = () => { const n=Math.round(heroSlider.scrollLeft/Math.max(heroSlider.offsetWidth,1)); document.querySelectorAll('.hm-dot').forEach((d,i)=>d.classList.toggle('active',i===n)); };
+            if(ongoingGrid && ongoing.length) ongoingGrid.innerHTML = ongoing.slice(0,24).map(a=>renderAnimeCard(a,a._source||'default')).filter(Boolean).join('');
+            else if(ongoingGrid && !state.loading) ongoingGrid.innerHTML = `<div class="hm-empty">${state.error || 'Katalog sedang sulit dijangkau.'}<br><button class="hm-btn-secondary hm-interactive" onclick="hmLoadHomeData()" style="margin-top:12px">Coba Lagi</button></div>`;
+            if(latestGrid && latest.length) latestGrid.innerHTML = latest.slice(0,60).map(a=>renderAnimeCard(a,a._source||'default')).filter(Boolean).join('');
+            else if(latestGrid && !state.loading) latestGrid.innerHTML = `<div class="hm-empty">${state.error || 'Anime terbaru sedang dimuat.'}<br><button class="hm-btn-secondary hm-interactive" onclick="hmLoadHomeData()" style="margin-top:12px">Coba Lagi</button></div>`;
+            if(ongoingGrid) ongoingGrid.dataset.loaded = ongoing.length ? '1' : '0';
+            if(latestGrid) latestGrid.dataset.loaded = latest.length ? '1' : '0';
+        }
+
         async function hmLoadHomeData() {
             const heroSlider = document.getElementById('hmHeroSlider');
             const ongoingGrid = document.getElementById('hmGridOngoing');
             const latestGrid = document.getElementById('hmGridAnimeLatest');
-            if (heroSlider) heroSlider.innerHTML = '<div class="hm-hero-slide skeleton"></div>';
-            if (ongoingGrid) ongoingGrid.innerHTML = Array.from({length:8},()=>'<div class="skeleton" style="height:160px;border-radius:12px"></div>').join('');
-            if (latestGrid) latestGrid.innerHTML = Array.from({length:6},()=>'<div class="skeleton" style="height:160px;border-radius:12px"></div>').join('');
-            showNotif('Menyiapkan katalog anime...');
-            try {
-                let ongoing = [], latest = [];
-                const [hybridO, hybridC] = await Promise.all([
-                    hybridFetch('/api/anime/catalog', {type:'ongoing'}),
-                    hybridFetch('/api/anime/catalog', {type:'latest'})
-                ]);
-                if (hybridO && Array.isArray(hybridO.items)) ongoing = hybridO.items;
-                if (hybridC && Array.isArray(hybridC.items)) latest = hybridC.items;
-                if (!ongoing.length && !latest.length) {
-                    const sourceList = (CONFIG_SISTEM.anime_sources || []).filter(Boolean);
-                    const req = [];
-                    sourceList.forEach(src => {
-                        for (let p=1; p<=2; p++) {
-                            req.push(apiFetch(`/anime/${src}/ongoing`, {page:p}).then(r=>extractListWithSource(r,src)));
-                            req.push(apiFetch(`/anime/${src}/completed`, {page:p}).then(r=>extractListWithSource(r,src)));
-                        }
-                    });
-                    const home = await apiFetch('/anime/home');
-                    const hv = unwrapPayload(home);
+            let {ongoing, latest} = readHomeCatalogCache();
+            const hasCache = ongoing.length || latest.length;
+            if(!hasCache) {
+                if(heroSlider) heroSlider.innerHTML = '<div class="hm-hero-slide skeleton"></div>';
+                if(ongoingGrid) ongoingGrid.innerHTML = Array.from({length:8},()=>'<div class="skeleton" style="height:160px;border-radius:12px"></div>').join('');
+                if(latestGrid) latestGrid.innerHTML = Array.from({length:6},()=>'<div class="skeleton" style="height:160px;border-radius:12px"></div>').join('');
+            } else {
+                renderHomeCatalog(ongoing, latest, {loading:true});
+            }
+            showNotif(hasCache ? 'Memperbarui katalog...' : 'Jaringan lambat? Sedang memuat katalog...', '<i class="ph-bold ph-spinner ph-spin"></i>', true);
+
+            const retryWaits = [0, 8000, 10000, 14000];
+            let gotNetworkData = !!hasCache;
+            let keepRetrying = true;
+            for(let attempt=0; attempt<retryWaits.length && keepRetrying; attempt++) {
+                if(attempt > 0) await new Promise(resolve => setTimeout(resolve, retryWaits[attempt]));
+                let resO = null, resL = null;
+                const pO = hybridFetch('/api/anime/catalog', {type:'ongoing'}, 13000).then(r => { resO = r; if(r && Array.isArray(r.items) && r.items.length) { ongoing = mergeAndShuffle([r.items, ongoing]); gotNetworkData = true; writeHomeCatalogCache(ongoing, latest); renderHomeCatalog(ongoing, latest, {loading:true}); } });
+                const pL = hybridFetch('/api/anime/catalog', {type:'latest'}, 13000).then(r => { resL = r; if(r && Array.isArray(r.items) && r.items.length) { latest = mergeAndShuffle([r.items, latest]); gotNetworkData = true; writeHomeCatalogCache(ongoing, latest); renderHomeCatalog(ongoing, latest, {loading:true}); } });
+                await Promise.allSettled([pO, pL]);
+                if(gotNetworkData) {
+                    writeHomeCatalogCache(ongoing, latest);
+                    renderHomeCatalog(ongoing, latest, {loading:true});
+                }
+                const refreshing = !!(resO?.refreshing || resL?.refreshing || !resO || !resL || !ongoing.length || !latest.length);
+                if(gotNetworkData && !refreshing) keepRetrying = false;
+                else if(attempt === retryWaits.length - 1) keepRetrying = false;
+                if(!gotNetworkData && attempt === 0) {
+                    // Last-resort legacy REST endpoint, only once; don't fan out dozens of requests in the browser.
+                    const rawHome = await apiFetch('/anime/home');
+                    const hv = unwrapPayload(rawHome);
                     const homeO = extractListWithSource(hv?.ongoingAnime || hv?.ongoing || hv?.on_going || [], 'default');
-                    const homeC = extractListWithSource(hv?.completeAnime || hv?.completed || hv?.complete || hv?.latest || [], 'default');
-                    const settled = await Promise.allSettled(req);
-                    const allO = [homeO], allC = [homeC];
-                    settled.forEach((r,i)=>{ if(r.status==='fulfilled') ((i%4<2)?allO:allC).push(r.value||[]); });
-                    ongoing = mergeAndShuffle(allO);
-                    latest = mergeAndShuffle(allC);
-                } else {
-                    ongoing = mergeAndShuffle([ongoing]);
-                    latest = mergeAndShuffle([latest]);
+                    const homeL = extractListWithSource(hv?.latestAnime || hv?.latest || hv?.completeAnime || hv?.completed || [], 'default');
+                    if(homeO.length) ongoing = mergeAndShuffle([ongoing, homeO]);
+                    if(homeL.length) latest = mergeAndShuffle([latest, homeL]);
+                    if(homeO.length || homeL.length) { gotNetworkData = true; writeHomeCatalogCache(ongoing, latest); renderHomeCatalog(ongoing, latest, {loading:true}); }
                 }
-                currentPage.ongoing = 1; currentPage.completed = 1;
-                const heroItems = ongoing.slice(0,5);
-                if (heroSlider) heroSlider.innerHTML = heroItems.length ? heroItems.map(a => {
-                    const slug = a._slug || getItemIdentity(a);
-                    const source = a._source || 'default';
-                    const scoreNum = parseFloat(String(a.score ?? a.rating ?? '').replace(',', '.'));
-                    const score = Number.isFinite(scoreNum) && scoreNum > 0 ? scoreNum.toFixed(1) : '';
-                    const poster = escapeHTML(getImageUrl(a, 'https://placehold.co/500x280/101116/B7AAFF?text=Nest+Stream'));
-                    if(!slug) return '';
-                    return `<div class="hm-hero-slide hm-interactive" onclick="hmLoadDetail(decodeURIComponent('${makeSafe(slug)}'), decodeURIComponent('${makeSafe(source)}'))"><img src="${poster}" class="hm-hero-img" loading="lazy" onerror="this.src='https://placehold.co/500x280/101116/B7AAFF?text=Nest+Stream'"><div class="hm-hero-overlay"><div class="hm-hero-tag"><i class="ph-bold ph-sparkle"></i> Pilihan Anime ${score ? '&nbsp; | &nbsp;'+score : ''}</div><div class="hm-hero-title">${escapeHTML(a.title || a.name || '')}</div></div></div>`;
-                }).join('') : '<div class="hm-empty">Katalog belum tersedia. Coba muat ulang.</div>';
-                const dots = document.getElementById('hmSliderDots');
-                if(dots) dots.innerHTML = heroItems.map((_,i)=>`<div class="hm-dot ${i===0?'active':''}"></div>`).join('');
-                if(heroSlider) heroSlider.onscroll = () => { const n=Math.round(heroSlider.scrollLeft/Math.max(heroSlider.offsetWidth,1)); document.querySelectorAll('.hm-dot').forEach((d,i)=>d.classList.toggle('active',i===n)); };
-                if(ongoingGrid) ongoingGrid.innerHTML = ongoing.length ? ongoing.slice(0,24).map(a=>renderAnimeCard(a,a._source||'default')).filter(Boolean).join('') : '<div class="hm-empty">Belum ada anime sedang tayang.</div>';
-                if(latestGrid) latestGrid.innerHTML = latest.length ? latest.slice(0,60).map(a=>renderAnimeCard(a,a._source||'default')).filter(Boolean).join('') : '<div class="hm-empty">Belum ada anime terbaru.</div>';
-                ongoingGrid.dataset.loaded = latestGrid.dataset.loaded = '1';
-                if ((hybridO && hybridO.refreshing) || (hybridC && hybridC.refreshing)) {
-                    let attempts = 0;
-                    const refreshExpandedCatalog = async () => {
-                        if (++attempts > 8) return;
-                        await new Promise(resolve => setTimeout(resolve, 9000));
-                        const [freshO, freshL] = await Promise.all([
-                            hybridFetch('/api/anime/catalog', {type:'ongoing'}),
-                            hybridFetch('/api/anime/catalog', {type:'latest'})
-                        ]);
-                        const nextO = freshO && Array.isArray(freshO.items) ? mergeAndShuffle([freshO.items]) : [];
-                        const nextL = freshL && Array.isArray(freshL.items) ? mergeAndShuffle([freshL.items]) : [];
-                        if (nextO.length > ongoing.length && ongoingGrid) ongoingGrid.innerHTML = nextO.slice(0,24).map(a=>renderAnimeCard(a,a._source||'default')).filter(Boolean).join('');
-                        if (nextL.length > latest.length && latestGrid) latestGrid.innerHTML = nextL.slice(0,60).map(a=>renderAnimeCard(a,a._source||'default')).filter(Boolean).join('');
-                        if ((freshO && freshO.refreshing) || (freshL && freshL.refreshing)) refreshExpandedCatalog();
-                    };
-                    refreshExpandedCatalog();
-                }
-            } catch(e) {
-                if(heroSlider) heroSlider.innerHTML='<div class="hm-empty">Katalog sedang sulit dijangkau.</div>';
-                if(ongoingGrid) ongoingGrid.innerHTML='<div class="hm-empty">Gagal memuat anime. Coba lagi.</div>';
-                if(latestGrid) latestGrid.innerHTML='<div class="hm-empty">Gagal memuat anime terbaru.</div>';
-            } finally { hideNotif(); }
+            }
+            if(gotNetworkData) {
+                renderHomeCatalog(ongoing, latest, {loading:false, error:'Data sebagian belum tersedia.'});
+                writeHomeCatalogCache(ongoing, latest);
+                hideNotif();
+            } else {
+                renderHomeCatalog([], [], {loading:false, error:'Jaringan sumber belum merespons. Data akan dicoba lagi.'});
+                hideNotif();
+            }
         }
 
         async function loadMoreGrid(type, btnElement) {
@@ -1151,35 +1237,50 @@
         }
 
         async function hmLoadGenres() {
-            const ep=currentMode==='manhwa'?'/comic/genres':'/anime/genre';
-            const data=await apiFetch(ep);
-            cachedGenres=normalizeGenres(data);
+            const pGrid = document.getElementById('hmGridPopGenre');
+            const fullGrid = document.getElementById('hmFullGenreGrid');
+            if(!cachedGenres.length) {
+                try { const saved = JSON.parse(localStorage.getItem('nest_stream_genres_v1') || '[]'); if(Array.isArray(saved)) cachedGenres = saved; } catch(_) {}
+            }
             if(cachedGenres.length) {
-                const popGenres=currentMode==='manhwa'?['Action','Fantasy','Romance','Murim','Isekai','School Life','Magic']:['Action','Adventure','Comedy','Drama','Fantasy','Romance'];
-                const filtered=cachedGenres.filter(g=>popGenres.some(x=>String(g.title||g.name||'').toLowerCase()===x.toLowerCase()));
-                const toRender=filtered.length?filtered:cachedGenres.slice(0,6);
-                const gridHTML=toRender.map(g=>{
-                    const gId=g.genreId||g.slug||g.id||g.name||g.title||'';
-                    const gTitle=g.title||g.name||gId;
-                    return `<div class="hm-genre-btn hm-interactive" onclick="hmDoFilterGenre(decodeURIComponent('${makeSafe(gId)}'), decodeURIComponent('${makeSafe(gTitle)}'))">${escapeHTML(gTitle)}</div>`;
+                const cachedPop = cachedGenres.filter(g => ['Action','Adventure','Comedy','Drama','Fantasy','Romance'].some(x => String(g.title||g.name||g).toLowerCase()===x.toLowerCase())).slice(0,6);
+                if(pGrid) pGrid.innerHTML = (cachedPop.length ? cachedPop : cachedGenres.slice(0,6)).map(g => {
+                    const id=g.genreId||g.slug||g.id||g.name||g.title||g, title=g.title||g.name||g.label||g;
+                    return `<div class="hm-genre-btn hm-interactive" onclick="hmDoFilterGenre(decodeURIComponent('${makeSafe(id)}'), decodeURIComponent('${makeSafe(title)}'))">${escapeHTML(title)}</div>`;
                 }).join('');
-                const pGrid=document.getElementById('hmGridPopGenre');
-                if(pGrid) pGrid.innerHTML=gridHTML;
                 hmRenderCatalogGenres();
             } else {
-                const pGrid=document.getElementById('hmGridPopGenre');
-                const fullGrid=document.getElementById('hmFullGenreGrid');
-                if(pGrid) pGrid.innerHTML='<div class="hm-empty">Gagal memuat genre.</div>';
-                if(fullGrid) fullGrid.innerHTML='<div class="hm-empty">Gagal memuat genre.</div>';
+                if(pGrid) pGrid.innerHTML = Array.from({length:4},()=>'<div class="skeleton" style="height:35px;border-radius:10px"></div>').join('');
+                if(fullGrid) fullGrid.innerHTML = '<div class="hm-empty">Memuat daftar genre…</div>';
             }
+            let data = null;
+            const hybrid = await hybridFetch('/api/anime/genres', {}, 7000);
+            if(hybrid && Array.isArray(hybrid.items) && hybrid.items.length) data = hybrid.items;
+            if(!data) data = await apiFetch('/anime/genre');
+            const fetchedGenres = normalizeGenres(data);
+            if(fetchedGenres.length) cachedGenres = fetchedGenres;
+            if(!cachedGenres.length) {
+                cachedGenres = ['Action','Adventure','Comedy','Drama','Fantasy','Romance','Isekai','Slice of Life','Mystery','Sci-Fi'].map(title => ({title,name:title,slug:title.toLowerCase().replace(/[^a-z0-9]+/g,'-'),genreId:title.toLowerCase().replace(/[^a-z0-9]+/g,'-')}));
+            }
+            try { localStorage.setItem('nest_stream_genres_v1', JSON.stringify(cachedGenres)); } catch(_) {}
+            const popGenres = currentMode==='manhwa' ? ['Action','Fantasy','Romance','Murim','Isekai','School Life','Magic'] : ['Action','Adventure','Comedy','Drama','Fantasy','Romance'];
+            const filtered = cachedGenres.filter(g => popGenres.some(x => String(g.title||g.name||g).toLowerCase()===x.toLowerCase()));
+            const toRender = filtered.length ? filtered : cachedGenres.slice(0,6);
+            const gridHTML = toRender.map(g => {
+                const gId=g.genreId||g.slug||g.id||g.name||g.title||g;
+                const gTitle=g.title||g.name||g.label||g;
+                return `<div class="hm-genre-btn hm-interactive" onclick="hmDoFilterGenre(decodeURIComponent('${makeSafe(gId)}'), decodeURIComponent('${makeSafe(gTitle)}'))">${escapeHTML(gTitle)}</div>`;
+            }).join('');
+            if(pGrid) pGrid.innerHTML = gridHTML;
+            hmRenderCatalogGenres();
         }
 
         function hmRenderCatalogGenres() {
             const container = document.getElementById('hmFullGenreGrid');
             if(!container) return;
             container.innerHTML = cachedGenres.map(g => {
-                const gId = g.genreId || g.slug || g;
-                const gTitle = g.title || g.name || g;
+                const gId = g.genreId || g.slug || g.id || g.name || g.title || g;
+                const gTitle = g.title || g.name || g.label || g;
                 return `<div class="hm-genre-btn hm-interactive" onclick="hmDoFilterGenre(decodeURIComponent('${makeSafe(gId)}'), decodeURIComponent('${makeSafe(gTitle)}'))">${escapeHTML(gTitle)}</div>`;
             }).join('');
         }
@@ -1373,7 +1474,7 @@
         }
 
         async function hmLoadDetail(rawSlug, source = 'default') {
-            const slug = cleanSlug(rawSlug);
+            const slug = source === 'scraper:animeindo' && /^https?:\/\//i.test(String(rawSlug || '')) ? String(rawSlug).trim() : cleanSlug(rawSlug);
             if(!slug) return;
             hmNavTo('detail');
             cDtlSource = source;
@@ -1414,13 +1515,6 @@
                 cDtlScore = (rawScore && String(rawScore)!=='0.0' && String(rawScore)!=='0' && String(rawScore)!=='?') ? rawScore : 'N/A';
                 cDtlHref = slug;
 
-                if (currentDetailEps.length > 1) {
-                    const firstStr = String(currentDetailEps[0].eps || currentDetailEps[0].title || currentDetailEps[0].episode || '');
-                    const lastStr = String(currentDetailEps[currentDetailEps.length - 1].eps || currentDetailEps[currentDetailEps.length - 1].title || currentDetailEps[currentDetailEps.length - 1].episode || '');
-                    const first = parseInt(firstStr.replace(/\D/g, '')) || 0;
-                    const last = parseInt(lastStr.replace(/\D/g, '')) || 0;
-                    if (first < last) currentDetailEps.reverse();
-                }
 
                 let epCount = getBadgeText(data, 'anime');
                 if(epCount === '?') epCount = `${currentDetailEps.length} Eps`;
@@ -1532,10 +1626,16 @@
                 const isCurrent = i === activeIdx;
                 const isRead = historyList.includes(epSlug) || isCurrent;
                 
-                let titleObj = e.title || e.eps || e.episode || e.name || '';
-                if(typeof titleObj === 'object') titleObj = '';
-                const match = String(titleObj).match(/\d+(\.\d+)?/);
-                let numDisplay = match ? match[0] : String(currentDetailEps.length - i);
+                let numDisplay = '';
+                for(const field of [e.episode, e.eps, e.number, e.episode_number, e.episodeNumber]) {
+                    if(field !== undefined && field !== null && field !== '' && typeof field !== 'object' && /^\d+(?:\.\d+)?$/.test(String(field).trim())) { numDisplay = String(field).trim(); break; }
+                }
+                if(!numDisplay) {
+                    const label = String(e.title || e.name || '');
+                    const match = label.match(/(?:episode|ep\.?|episod)\s*[-:#.]?\s*(\d+(?:\.\d+)?)/i);
+                    if(match) numDisplay = match[1];
+                }
+                if(!numDisplay) numDisplay = String(currentDetailEps.length - i);
 
                 const stateClass = isCurrent ? 'ep-active' : (isRead ? 'ep-read' : 'ep-unread');
                 return `<button class="hm-ep-box hm-interactive ${stateClass}" onclick="hmPlayStreamIdx(${i})">${escapeHTML(numDisplay)}</button>`;
@@ -1573,6 +1673,10 @@
             
             document.getElementById('hmStreamServersContainer').innerHTML = '<div class="skeleton" style="height:44px; border-radius:10px; margin-bottom:16px;"></div>';
             document.getElementById('hmStreamIframe').src = '';
+            const currentVideo = document.getElementById('hmStreamVideo'); if(currentVideo) { currentVideo.pause(); currentVideo.removeAttribute('src'); currentVideo.load(); currentVideo.style.display='none'; }
+            const playerHint = document.getElementById('hmPlayerHint'); if(playerHint) playerHint.style.display='none';
+            clearTimeout(playerHintTimer);
+            currentHybridSources = [];
             document.getElementById('hmStreamBlocker').style.display = 'flex';
             renderStreamEpsList(false, index, 'hmStreamEpsList');
             
@@ -1580,15 +1684,16 @@
             
             if(String(cDtlSource).startsWith('scraper:')) {
                 const provider = String(cDtlSource).slice('scraper:'.length);
-                const epNumber = ep.episode || ep.eps || ep.number || (index + 1);
+                const epNumber = ep.episode ?? ep.eps ?? ep.number ?? (index + 1);
                 const sourceSlug = provider === 'animeindo' ? (ep.url || ep.href || epSlug) : cDtlHref;
-                const hybridEpisode = await hybridFetch('/api/anime/episode', {provider, slug:sourceSlug, episode:epNumber});
-                if(hybridEpisode && hybridEpisode.ok && hybridEpisode.defaultStreamingUrl) {
-                    document.getElementById('hmStreamServersContainer').innerHTML = '<div class="hm-server-label" style="text-align:center">Sumber video tersedia</div>';
-                    pendingIframeUrl = hybridEpisode.defaultStreamingUrl;
-                    playIframe();
+                const hybridEpisode = await hybridFetch('/api/anime/episode', {provider, slug:sourceSlug, episode:epNumber}, 14000);
+                if(hybridEpisode && hybridEpisode.ok && (hybridEpisode.sources?.length || hybridEpisode.defaultStreamingUrl)) {
+                    currentHybridSources = Array.isArray(hybridEpisode.sources) && hybridEpisode.sources.length ? hybridEpisode.sources : [{name:'Sumber utama',url:hybridEpisode.defaultStreamingUrl,type:'embed'}];
+                    renderHybridSources(currentHybridSources);
+                    hmPlayHybridSource(0);
                 } else {
-                    document.getElementById('hmStreamServersContainer').innerHTML = '<div class="hm-empty">Sumber video belum tersedia. Coba episode atau sumber lain.</div>';
+                    currentHybridSources = [];
+                    document.getElementById('hmStreamServersContainer').innerHTML = `<div class="hm-empty">${escapeHTML(hybridEpisode?.error || 'Sumber video belum tersedia.')}<br><button class="hm-btn-secondary hm-interactive" onclick="hmPlayStreamIdx(${index})" style="margin-top:12px">Coba Lagi</button></div>`;
                 }
                 hideNotif();
                 return;
@@ -1671,17 +1776,58 @@
         }
 
         function playIframe() {
-            document.getElementById('hmStreamBlocker').style.display = 'none';
-            if(pendingIframeUrl) {
-                let url = pendingIframeUrl;
-                if(url.includes('<iframe')) {
-                    const match = url.match(/src=["'](.*?)["']/);
-                    if(match) url = match[1];
-                }
-                if(url.startsWith('//')) url = 'https:' + url;
-                if(url.startsWith('http://')) url = url.replace('http://', 'https://');
-                document.getElementById('hmStreamIframe').src = url;
+            const frame = document.getElementById('hmStreamIframe');
+            const video = document.getElementById('hmStreamVideo');
+            const blocker = document.getElementById('hmStreamBlocker');
+            const hint = document.getElementById('hmPlayerHint');
+            if(!pendingIframeUrl) return;
+            let url = String(pendingIframeUrl).trim();
+            if(url.includes('<iframe')) { const match = url.match(/src=["'](.*?)["']/i); if(match) url = match[1]; }
+            if(url.startsWith('//')) url = 'https:' + url;
+            if(url.startsWith('http://')) url = url.replace('http://', 'https://');
+            clearTimeout(playerHintTimer);
+            if(hint) hint.style.display='none';
+            if(blocker) blocker.style.display='none';
+            const isDirectVideo = /\.(m3u8|mp4|webm|ogv)(?:[?#]|$)/i.test(url);
+            if(isDirectVideo && video) {
+                if(frame) frame.src='';
+                video.style.display='block';
+                video.src=url;
+                video.load();
+                const p = video.play(); if(p && typeof p.catch === 'function') p.catch(()=>{});
+            } else {
+                if(video) { video.pause(); video.removeAttribute('src'); video.load(); video.style.display='none'; }
+                if(frame) frame.src=url;
             }
+            // Cross-origin iframe errors cannot reliably be inspected by the page. Offer a clear fallback hint.
+            playerHintTimer = setTimeout(() => { if(hint) hint.style.display='block'; }, 9000);
+        }
+
+        function renderHybridSources(sources) {
+            const container = document.getElementById('hmStreamServersContainer');
+            const usable = (sources || []).filter(s => s && s.url);
+            if(!container) return;
+            if(!usable.length) { container.innerHTML = '<div class="hm-empty">Tidak ada sumber video.</div>'; return; }
+            container.innerHTML = `
+                <div class="hm-dtl-box" style="padding:14px;margin-bottom:18px;">
+                    <div class="hm-dtl-box-title"><i class="ph-bold ph-monitor-play"></i> Pilih Sumber Video (${usable.length})</div>
+                    <div class="hm-server-scroll" style="display:flex;flex-wrap:wrap;gap:8px;">
+                        ${usable.map((src,i)=>`<button class="hm-server-btn hm-interactive ${i===0?'active':''}" id="hybridSrvBtn_${i}" onclick="hmPlayHybridSource(${i})">${escapeHTML(src.name || `Sumber ${i+1}`)}</button>`).join('')}
+                    </div>
+                    <a id="hmOpenSourceLink" href="${escapeHTML(usable[0].url)}" target="_blank" rel="noopener noreferrer" class="hm-btn-secondary hm-interactive" style="display:flex;justify-content:center;margin-top:12px;text-decoration:none;">Buka sumber di tab baru <i class="ph-bold ph-arrow-square-out" style="margin-left:8px"></i></a>
+                    <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5;">Jika player menampilkan <b>Forbidden</b>, sumber tersebut membatasi embed. Coba server lain atau buka sumber di tab baru.</div>
+                </div>`;
+        }
+
+        function hmPlayHybridSource(index) {
+            const source = currentHybridSources[index];
+            if(!source || !source.url) return;
+            document.querySelectorAll('[id^="hybridSrvBtn_"]').forEach(b=>b.classList.remove('active'));
+            const btn = document.getElementById(`hybridSrvBtn_${index}`); if(btn) btn.classList.add('active');
+            const openLink = document.getElementById('hmOpenSourceLink');
+            if(openLink) openLink.href = source.url;
+            pendingIframeUrl = source.url;
+            playIframe();
         }
 
         function hmToggleFullscreen() {

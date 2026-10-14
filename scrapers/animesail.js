@@ -57,7 +57,7 @@ function parseCard($, el) {
   if (!a.length) return null;
   const href = a.attr('href') || '';
   const title = $(el).find('.tt h2, h2, h3').first().text().trim() || a.attr('title') || '';
-  const img = $(el).find('img').attr('src') || $(el).find('img').attr('data-src') || '';
+  const img = $(el).find('img').attr('src') || $(el).find('img').attr('data-src') || $(el).find('img').attr('data-lazy-src') || '';
   const typeText = $(el).find('.tt span').text().trim();
   const yearMatch = typeText.match(/\b(19\d\d|20\d\d)\b/);
   const timeMatch = $(el).find('x-ts').text().trim() || '';
@@ -203,17 +203,38 @@ async function detail(slugOrUrl) {
   });
 
   const episodes = [];
+  const seenEpisodeNumbers = new Set();
+  const seenEpisodeUrls = new Set();
   $('ul.daftar li a').each((_, a) => {
     const epUrl = $(a).attr('href') || '';
-    const epTitle = $(a).text().trim();
-    const numMatch = epTitle.match(/Episode\s+(\d+(?:\.\d+)?)/i);
+    const epTitle = $(a).text().trim().replace(/\s+/g, ' ');
+    const normalizedEpUrl = normalizeUrl(epUrl);
+    const numMatch = epTitle.match(/(?:Episode|Ep\.?|Episod)\s*[-:#.]?\s*(\d+(?:\.\d+)?)/i)
+      || normalizedEpUrl.match(/(?:episode|ep)[/-](\d+(?:\.\d+)?)(?:\/|$|[?#])/i)
+      || normalizedEpUrl.match(/(?:episode|ep)[-_](\d+(?:\.\d+)?)(?:\/|$|[?#])/i);
+    const epNumber = numMatch ? String(numMatch[1]) : null;
+    const seasonMatch = `${epTitle} ${epUrl}`.match(/season[\s_/-]*(\d+)/i) || `${epTitle} ${epUrl}`.match(/s(\d{1,2})[\s_-]*e\d+/i);
+    const episodeKey = epNumber ? `${seasonMatch ? 's' + seasonMatch[1] + ':' : ''}${epNumber}` : null;
     const cleanEp = epUrl.replace(/^https?:\/\/[^\/]+/, '');
+    const normalizedKey = normalizedEpUrl.toLowerCase().replace(/[?#].*$/, '').replace(/\/$/, '');
+    if (episodeKey && seenEpisodeNumbers.has(episodeKey)) return;
+    if (!epNumber && normalizedKey && seenEpisodeUrls.has(normalizedKey)) return;
+    if (episodeKey) seenEpisodeNumbers.add(episodeKey);
+    if (normalizedKey) seenEpisodeUrls.add(normalizedKey);
     episodes.push({
-      title: epTitle,
-      episode: numMatch ? numMatch[1] : null,
-      url: normalizeUrl(epUrl),
+      title: epTitle || (epNumber ? `Episode ${epNumber}` : `Episode ${episodes.length + 1}`),
+      episode: epNumber,
+      number: epNumber,
+      season: seasonMatch ? seasonMatch[1] : '',
+      url: normalizedEpUrl,
       slug: cleanEp.replace(/^\/+|\/+$/g, '')
     });
+  });
+  episodes.sort((a, b) => {
+    const seasonDiff = Number(b.season || 0) - Number(a.season || 0);
+    if (seasonDiff) return seasonDiff;
+    const an = Number(a.episode), bn = Number(b.episode);
+    return Number.isFinite(an) && Number.isFinite(bn) && an !== bn ? bn - an : 0;
   });
 
   return {
