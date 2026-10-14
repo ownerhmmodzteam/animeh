@@ -1,0 +1,2179 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Nest Stream — Anime</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script defer src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="config.js"></script>
+    
+    <script>
+        let NestSavedUI = localStorage.getItem('nest_ui_pref');
+        if (!NestSavedUI) {
+            NestSavedUI = 'material-3';
+            localStorage.setItem('nest_ui_pref', 'material-3');
+        }
+        document.documentElement.classList.add(NestSavedUI);
+    </script>
+
+    <style>
+        :root {
+            --trans-curve: cubic-bezier(0.25, 1, 0.5, 1);
+            --safe-top: env(safe-area-inset-top, 12px);
+            --safe-bottom: env(safe-area-inset-bottom, 12px);
+        }
+
+        html.material-3 {
+            --brand-primary: #9182FF;
+            --brand-secondary: #B5952F;
+            --text-main: #FFFFFF;
+            --text-muted: #94A3B8; 
+            --main-bg: #08090D;
+            --card-bg: #12151D;
+            --glass-bg: rgba(18, 21, 29, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-shadow: 0 15px 35px rgba(0, 0, 0, 0.35);
+            --radius-xl: 24px;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+        }
+
+        html.hig-ui {
+            --brand-primary: #FFFFFF;
+            --brand-secondary: #E5E7EB;
+            --text-main: #FFFFFF;
+            --text-muted: #98989D;
+            --main-bg: #050505;
+            --card-bg: #151515;
+            --glass-bg: rgba(28, 28, 30, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.10);
+            --glass-shadow: none;
+            --radius-xl: 18px;
+            --radius-lg: 14px;
+            --radius-md: 10px;
+            --radius-sm: 8px;
+        }
+
+        html.neumorphism {
+            --brand-primary: #9182FF;
+            --brand-secondary: #F5D76E;
+            --text-main: #FFFFFF;
+            --text-muted: #9298A5; 
+            --main-bg: #17191D;
+            --card-bg: #191B20;
+            --glass-bg: rgba(25, 27, 32, 0.9);
+            --glass-border: transparent;
+            --glass-shadow: 8px 8px 18px rgba(0,0,0,0.55), -8px -8px 18px rgba(255,255,255,0.025);
+            --radius-xl: 24px;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+            --radius-sm: 8px;
+        }
+
+        html.liquid-glass {
+            --brand-primary: #f1c40f;
+            --brand-secondary: #fff099;
+            --text-main: #fff;
+            --text-muted: rgba(255,255,255,.68);
+            --main-bg: #04060a;
+            --card-bg: rgba(255,255,255,.075);
+            --glass-bg: rgba(255,255,255,.10);
+            --glass-border: rgba(255,255,255,.19);
+            --glass-shadow: 0 20px 50px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.22);
+            --radius-xl: 26px;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
+        }
+        html.liquid-glass body {
+            background:
+              radial-gradient(circle at 10% 0%, rgba(241,196,15,.10), transparent 32%),
+              radial-gradient(circle at 100% 25%, rgba(72,140,255,.12), transparent 30%),
+              var(--main-bg);
+        }
+        html.liquid-glass .hm-top-navbar,
+        html.liquid-glass .hm-bottom-navbar,
+        html.liquid-glass .hm-card,
+        html.liquid-glass .hm-panel,
+        html.liquid-glass .hm-modal,
+        html.liquid-glass .hm-action-btn,
+        html.liquid-glass .hm-server-menu,
+        html.liquid-glass #dynamicIsland {
+            background: linear-gradient(135deg, rgba(255,255,255,.14), rgba(255,255,255,.035)) !important;
+            border-color: rgba(255,255,255,.19) !important;
+            box-shadow: var(--glass-shadow) !important;
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+        }
+        html.liquid-glass .skeleton {
+            background: linear-gradient(100deg, rgba(255,255,255,.06) 20%, rgba(255,255,255,.16) 50%, rgba(255,255,255,.06) 80%);
+            background-size: 220% 100%;
+        }
+        html.liquid-glass .hm-brand-icon,
+        html.liquid-glass .hm-action-btn:active {
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 10px 30px rgba(0,0,0,.25);
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-font-smoothing: antialiased; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+        html, body { height: 100%; width: 100%; background-color: var(--main-bg); color: var(--text-main); position: relative; overscroll-behavior-y: none; }
+        button, input, textarea { border: none; background: none; outline: none; color: var(--text-main); font-family: inherit; cursor: pointer; transition: transform 0.2s var(--trans-curve), opacity 0.2s; }
+        button:active, .hm-interactive:active { transform: scale(0.94); opacity: 0.8; }
+        
+        .skeleton { background: linear-gradient(90deg, var(--card-bg) 25%, rgba(255,255,255,0.08) 50%, var(--card-bg) 75%); background-size: 200% 100%; animation: skeletonLoading 1.5s infinite linear; border-radius: var(--radius-sm); }
+        @keyframes skeletonLoading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        @keyframes hmFadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        #dynamicIsland { position: fixed; top: calc(var(--safe-top) + 10px); left: 50%; transform: translate3d(-50%, -100px, 0); border-radius: 40px; background: var(--glass-bg); backdrop-filter: blur(16px); border: 1px solid var(--glass-border); padding: 10px 20px; z-index: 10000; display: flex; align-items: center; justify-content: center; gap: 10px; opacity: 0; pointer-events: none; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: var(--glass-shadow); }
+        #dynamicIsland.active { transform: translate3d(-50%, 0, 0); opacity: 1; }
+        .di-icon { color: var(--brand-primary); display: flex; align-items: center; font-size: 18px; }
+        .di-text { font-size: 13px; font-weight: 700; color: var(--text-main); letter-spacing: -0.2px; }
+        
+        .hm-top-navbar { position: fixed; top: 0; left: 0; width: 100%; z-index: 5000; background: linear-gradient(to bottom, var(--main-bg) 0%, rgba(0,0,0,0) 100%); padding-top: var(--safe-top); transition: background 0.3s; }
+        .hm-top-navbar.scrolled { background: var(--glass-bg); backdrop-filter: blur(20px); border-bottom: 1px solid var(--glass-border); }
+        .hm-nav-container { max-width: 500px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; }
+        .hm-brand { display: flex; align-items: center; gap: 10px; cursor: pointer; margin-right: auto; }
+        .hm-brand-icon { width: 28px; height: 28px; background: var(--brand-primary); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--main-bg); font-size: 16px; border-top-left-radius: 14px; border-bottom-right-radius: 14px; box-shadow: 0 4px 10px rgba(212,175,55,0.3); }
+        .hm-brand-text { font-size: 18px; font-weight: 900; letter-spacing: -0.5px; }
+        .hm-brand-text span { color: var(--brand-primary); }
+        .hm-top-actions { display: flex; gap: 12px; align-items: center; }
+        .hm-action-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--glass-bg); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: center; font-size: 18px; color: var(--text-main); border: 1px solid var(--glass-border); }
+        
+        .hm-main-layout { height: 100%; width: 100%; overflow-y: auto; overflow-x: hidden; padding-bottom: calc(var(--safe-bottom) + 110px); padding-top: calc(var(--safe-top) + 60px); scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+        .hm-main-layout::-webkit-scrollbar { display: none; }
+        .hm-content-wrap { max-width: 500px; margin: 0 auto; padding: 0 16px; }
+        .hm-view-layer { display: none; width: 100%; animation: hmFadeIn 0.4s var(--trans-curve) forwards; }
+        .hm-view-active { display: block; }
+        
+        .hm-section-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; margin-top: 24px; }
+        .hm-section-title { font-size: 16px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px; letter-spacing: -0.3px; }
+        .hm-section-more { font-size: 11px; color: var(--brand-primary); font-weight: 700; display: flex; align-items: center; gap: 4px; padding: 6px 10px; border-radius: 20px; background: rgba(212,175,55,0.1); cursor: pointer; }
+        
+        .hm-hero-slider { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 10px; margin-bottom: 4px; scrollbar-width: none; }
+        .hm-hero-slider::-webkit-scrollbar { display: none; }
+        .hm-hero-slide { flex: 0 0 100%; scroll-snap-align: center; position: relative; border-radius: var(--radius-xl); overflow: hidden; aspect-ratio: 16/9; border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); cursor: pointer; }
+        .hm-hero-img { width: 100%; height: 100%; object-fit: cover; border-radius: var(--radius-xl); }
+        .hm-hero-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--main-bg) 0%, rgba(0,0,0,0.3) 50%, transparent 100%); display: flex; flex-direction: column; justify-content: flex-end; padding: 16px; }
+        .hm-hero-tag { background: var(--brand-primary); color: var(--main-bg); font-size: 9px; font-weight: 900; padding: 4px 8px; border-radius: 6px; width: fit-content; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .hm-hero-title { font-size: 16px; font-weight: 900; line-height: 1.3; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; letter-spacing: -0.5px; }
+        .hm-slider-dots { display: flex; justify-content: center; gap: 6px; margin-bottom: 10px; }
+        .hm-dot { width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: 0.4s var(--trans-curve); }
+        .hm-dot.active { width: 16px; border-radius: 4px; background: var(--brand-primary); }
+        
+        .hm-anime-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 8px; }
+        .hm-anime-card { display: flex; flex-direction: column; cursor: pointer; }
+        .hm-ac-thumb-wrap { width: 100%; aspect-ratio: 3/4.2; position: relative; border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 6px; background: var(--card-bg); border: 1px solid rgba(255,255,255,0.05); }
+        .hm-ac-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+        .hm-anime-card:active .hm-ac-img { transform: scale(1.05); }
+        .hm-ac-score { position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); color: var(--brand-primary); font-size: 8px; font-weight: 800; padding: 2px 4px; border-radius: 4px; display: flex; align-items: center; gap: 3px; border: 1px solid rgba(212,175,55,0.2); }
+        .hm-ac-ep { position: absolute; bottom: 4px; right: 4px; background: var(--brand-primary); color: var(--main-bg); font-size: 8px; font-weight: 900; padding: 2px 4px; border-radius: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        .hm-ac-title { font-size: 10px; font-weight: 700; color: var(--text-main); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.3; text-align: center; }
+        
+        .hm-load-more { grid-column: 1 / -1; background: rgba(255,255,255,0.04); color: var(--text-main); text-align: center; padding: 12px; border-radius: 12px; font-size: 12px; font-weight: 800; border: 1px dashed var(--glass-border); margin-top: 4px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        
+        .hm-jadwal-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 10px; scroll-snap-type: x mandatory; scrollbar-width: none; }
+        .hm-jadwal-scroll::-webkit-scrollbar { display: none; }
+        .hm-jadwal-scroll .hm-anime-card { flex: 0 0 90px; scroll-snap-align: start; }
+        
+        .hm-genre-section { background: var(--card-bg); border-radius: var(--radius-xl); padding: 16px; margin-top: 24px; border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); }
+        .hm-genre-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+        .hm-genre-title { font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: var(--text-main); }
+        .hm-genre-icon { width: 22px; height: 22px; background: rgba(212,175,55,0.15); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--brand-primary); font-size: 11px; }
+        .hm-genre-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .hm-genre-btn { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 8px 6px; border-radius: var(--radius-sm); text-align: center; font-size: 11px; font-weight: 700; color: var(--text-main); }
+        .hm-genre-btn.active { background: var(--brand-primary); color: var(--main-bg); border-color: var(--brand-primary); box-shadow: 0 4px 12px rgba(212,175,55,0.3); }
+        
+        .hm-bottom-nav { position: fixed; bottom: calc(var(--safe-bottom) + 12px); left: 50%; transform: translateX(-50%); width: calc(100% - 32px); max-width: 460px; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 30px; padding: 6px 12px; z-index: 5000; transition: transform 0.4s var(--trans-curve), opacity 0.4s; box-shadow: 0 20px 40px rgba(0,0,0,0.8); }
+        .hm-bottom-nav.hidden { transform: translate(-50%, 150%); opacity: 0; }
+        .hm-nav-list { display: flex; justify-content: space-around; list-style: none; height: 56px; }
+        .hm-nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--text-muted); position: relative; cursor: pointer; }
+        .hm-nav-icon { font-size: 22px; transition: 0.3s var(--trans-curve); z-index: 2; }
+        .hm-nav-label { font-size: 10px; font-weight: 700; z-index: 2; transition: 0.3s; opacity: 0.7; }
+        .hm-nav-item::before { content: ''; position: absolute; width: 44px; height: 44px; background: transparent; border-radius: 50%; z-index: 1; transition: 0.3s var(--trans-curve); top: 0; }
+        .hm-nav-item.active { color: var(--brand-primary); }
+        .hm-nav-item.active .hm-nav-icon { transform: translateY(-3px); }
+        .hm-nav-item.active .hm-nav-label { opacity: 1; }
+        .hm-nav-item.active::before { background: rgba(212, 175, 55, 0.15); transform: translateY(-4px); }
+        
+        .hm-search-container { position: relative; margin-bottom: 20px; }
+        .hm-search-input { width: 100%; background: var(--card-bg); border: 1px solid var(--glass-border); padding: 14px 20px 14px 44px; border-radius: var(--radius-lg); font-size: 14px; font-weight: 500; color: var(--text-main); box-shadow: var(--glass-shadow); transition: 0.3s; }
+        .hm-search-input:focus { border-color: var(--brand-primary); background: rgba(212,175,55,0.05); }
+        .hm-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 18px; pointer-events: none; }
+        
+        .hm-dtl-header { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; position: relative; }
+        .hm-dtl-poster-wrap { width: 100%; aspect-ratio: 16/10; border-radius: var(--radius-xl); overflow: hidden; position: relative; border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow); }
+        .hm-dtl-poster-blur { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: blur(20px) opacity(0.6); transform: scale(1.1); z-index: 1; }
+        .hm-dtl-poster-main { position: relative; width: 100px; height: 140px; object-fit: cover; border-radius: var(--radius-md); z-index: 2; margin: 20px auto; display: block; box-shadow: 0 15px 35px rgba(0,0,0,0.9); border: 2px solid rgba(255,255,255,0.1); }
+        .hm-dtl-title { font-size: 20px; font-weight: 900; text-align: center; margin-bottom: 4px; line-height: 1.3; letter-spacing: -0.5px; }
+        .hm-dtl-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 8px; }
+        .hm-dtl-tag { background: var(--card-bg); border: 1px solid var(--glass-border); padding: 4px 10px; border-radius: 10px; font-size: 10px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 4px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .hm-dtl-action-bar { display: flex; gap: 12px; margin-bottom: 24px; }
+        .hm-btn-primary { background: var(--brand-primary); color: var(--main-bg); border-radius: 12px; padding: 12px 16px; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; flex: 1; box-shadow: 0 6px 16px rgba(212,175,55,0.3); }
+        .hm-btn-secondary { background: rgba(255,255,255,0.08); color: var(--text-main); border-radius: 12px; padding: 12px 16px; font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+        .hm-btn-secondary.active { background: rgba(212,175,55,0.15); color: var(--brand-primary); border-color: var(--brand-primary); }
+        
+        .hm-dtl-box { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 20px; box-shadow: var(--glass-shadow); }
+        .hm-dtl-box-title { font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+        .hm-dtl-desc { font-size: 12px; color: var(--text-muted); line-height: 1.6; font-weight: 500; }
+        .hm-dtl-desc b { color: var(--text-main); font-weight: 700; }
+        
+        .hm-ep-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(45px, 1fr)); gap: 8px; margin-bottom: 20px; }
+        .hm-ep-box { background: var(--card-bg); border: 1px solid var(--glass-border); border-radius: var(--radius-sm); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--text-main); position: relative; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .hm-ep-box.ep-unread { border-bottom: 3px solid #3B82F6; }
+        .hm-ep-box.ep-read { border-bottom: 3px solid var(--brand-primary); background: rgba(212, 175, 55, 0.05); color: var(--brand-primary); }
+        .hm-ep-box.ep-active { background: var(--brand-primary); color: var(--main-bg); border-bottom: 3px solid var(--main-bg); }
+        
+        .hm-stream-player { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 20px; position: relative; box-shadow: 0 15px 40px rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.05); }
+        .hm-stream-iframe { width: 100%; height: 100%; border: none; }
+        .hm-stream-info { margin-bottom: 20px; }
+        .hm-stream-title { font-size: 16px; font-weight: 900; margin-bottom: 8px; line-height: 1.3; letter-spacing: -0.3px; }
+        .hm-server-group { margin-bottom: 16px; }
+        .hm-server-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; font-weight: 800; display: flex; align-items: center; gap: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .hm-server-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
+        .hm-server-scroll::-webkit-scrollbar { display: none; }
+        .hm-server-btn { flex: 0 0 auto; background: var(--card-bg); border: 1px solid var(--glass-border); padding: 8px 12px; border-radius: var(--radius-sm); font-size: 11px; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+        .hm-server-btn.active { background: var(--brand-primary); color: var(--main-bg); border-color: var(--brand-primary); }
+        .hm-iframe-blocker { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); }
+        .hm-fullscreen-btn { position: absolute; bottom: 12px; right: 12px; z-index: 20; width: 36px; height: 36px; border-radius: 10px; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; }
+        
+        .hm-jadwal-tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; }
+        .hm-jadwal-tabs::-webkit-scrollbar { display: none; }
+        .hm-jadwal-tab { background: var(--card-bg); border: 1px solid var(--glass-border); padding: 10px 16px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: var(--text-muted); white-space: nowrap; }
+        .hm-jadwal-tab.active { background: var(--brand-primary); color: var(--main-bg); border-color: var(--brand-primary); }
+        
+        .hm-server-modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(12px); z-index:9000; display:none; align-items:center; justify-content:center; padding:20px; opacity: 0; transition: opacity 0.3s; }
+        .hm-server-modal-backdrop.active { display:flex; opacity: 1; }
+        .hm-server-modal { width:min(400px, 100%); background:var(--card-bg); border:1px solid var(--glass-border); border-radius:24px; box-shadow:0 30px 60px rgba(0,0,0,0.9); padding:24px; transform: scale(0.95); transition: transform 0.3s var(--trans-curve); }
+        .hm-server-modal-backdrop.active .hm-server-modal { transform: scale(1); }
+        .hm-server-modal-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+        .hm-server-modal-title { font-size:18px; font-weight:900; letter-spacing: -0.5px; }
+        .hm-server-modal-sub { font-size:12px; color:var(--text-muted); margin-top:4px; font-weight: 500; }
+        .hm-server-option { width:100%; display:flex; align-items:center; gap:16px; padding:16px; border:1px solid var(--glass-border); background:rgba(255,255,255,0.03); border-radius:16px; margin-top:12px; text-align:left; }
+        .hm-server-option.active { border-color:var(--brand-primary); background:rgba(212,175,55,0.1); }
+        .hm-server-option i { font-size:24px; color:var(--brand-primary); }
+        .hm-server-option b { display:block; font-size:14px; font-weight: 800; }
+        .hm-server-option span { display:block; font-size:11px; color:var(--text-muted); margin-top:4px; font-weight: 500; }
+        
+        .hm-comic-reader { background:var(--main-bg); border-radius:var(--radius-lg); overflow:hidden; }
+        .hm-comic-page { display:block; width:100%; height:auto; background:var(--main-bg); }
+        .hm-reader-toolbar { position:sticky; top:calc(var(--safe-top) + 60px); z-index:30; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px; background:var(--glass-bg); backdrop-filter:blur(16px); border:1px solid var(--glass-border); border-radius:16px; margin-bottom:16px; transition: transform 0.3s; }
+        .hm-eye-mode .hm-top-navbar, .hm-eye-mode .hm-bottom-nav, .hm-eye-mode .hm-reader-toolbar { display:none !important; }
+        .hm-eye-mode .hm-main-layout { padding-top:var(--safe-top); padding-bottom:var(--safe-bottom); }
+        
+        .hm-reader-float { display:none; }
+        .hm-eye-mode .hm-reader-float { display:flex; position:fixed; left:16px; bottom:16px; z-index:9500; gap:8px; background:var(--glass-bg); backdrop-filter:blur(20px); border:1px solid var(--glass-border); border-radius:16px; padding:8px; box-shadow:0 15px 40px rgba(0,0,0,0.9); flex-direction: row; align-items: center; }
+        .hm-eye-mode .hm-reader-float button { width:auto; height:36px; border-radius:8px; background:rgba(255,255,255,0.05); color:var(--text-main); display:flex; align-items:center; justify-content:center; gap:6px; padding:0 12px; font-size: 11px; font-weight:800; }
+        .hm-eye-mode .hm-reader-float button:disabled { opacity: 0.3; }
+        .hm-eye-mode .hm-reader-float button.icon-only { width: 36px; padding: 0; }
+        
+        .hm-empty { grid-column:1/-1; text-align:center; padding:40px 20px; color:var(--text-muted); font-size:12px; font-weight: 600; background: var(--card-bg); border-radius: var(--radius-lg); border: 1px dashed var(--glass-border); }
+        .hm-comic-chapters { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+        .hm-comic-chapter { padding:12px 6px; background:var(--card-bg); border:1px solid var(--glass-border); border-radius:var(--radius-sm); color:var(--text-main); font-size:10px; font-weight:800; text-align:center; word-break: break-word; }
+
+        html.neumorphism .hm-anime-card, html.neumorphism .hm-dtl-box, html.neumorphism .hm-btn-secondary, html.neumorphism .hm-genre-btn {
+            box-shadow: 6px 6px 12px rgba(0,0,0,0.5), -5px -5px 10px rgba(255,255,255,0.025);
+            border: none !important;
+        }
+        
+        html.neumorphism .hm-bottom-nav, html.neumorphism .hm-server-modal, html.neumorphism .hm-reader-toolbar {
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.55);
+            border: none;
+        }
+        
+        html.neumorphism .hm-search-input {
+            box-shadow: inset 4px 4px 9px rgba(0,0,0,.4), inset -4px -4px 9px rgba(255,255,255,.02);
+            border: none;
+        }
+        
+        html.neumorphism .hm-btn-primary {
+            box-shadow: 7px 7px 14px rgba(0,0,0,.5), -6px -6px 12px rgba(255,255,255,.025);
+        }
+
+        html.hig-ui .hm-dtl-box, html.hig-ui .hm-genre-btn, html.hig-ui .hm-search-input {
+            background: #1C1C1E;
+            border: none;
+        }
+        
+        html.hig-ui .hm-bottom-nav {
+            background: rgba(28,28,30, 0.85);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 40px;
+        }
+        
+        html.hig-ui .hm-brand-icon {
+            background: #1C1C1E;
+            color: #fff;
+            border-radius: 12px;
+            box-shadow: none;
+        }
+
+        /* Nest Stream Hybrid: anime-only, horizontal discovery rail */
+        #hmViewManhwaHome, #hmViewManhwaDetail, #hmViewManhwaReader,
+        #hmServerModal, #serverManhwaOption, #serverAnimeOption { display:none !important; }
+        #hmGridAnimeLatest {
+            display:grid !important;
+            grid-auto-flow:column;
+            grid-auto-columns:calc((100% - 36px) / 4);
+            grid-template-columns:none !important;
+            overflow-x:auto;
+            overscroll-behavior-x:contain;
+            scroll-snap-type:x mandatory;
+            scrollbar-width:none;
+            padding:2px 2px 12px;
+            gap:12px;
+        }
+        #hmGridAnimeLatest::-webkit-scrollbar { display:none; }
+        #hmGridAnimeLatest .hm-anime-card { min-width:0; scroll-snap-align:start; }
+        #hmGridAnimeLatest .hm-load-more { display:none; }
+        #hmGridOngoing { grid-template-columns:repeat(4,minmax(0,1fr)); }
+        .hm-section-header { margin-top:22px; }
+        @media (max-width:760px) {
+          .hm-content-wrap { max-width:1100px; }
+          #hmGridAnimeLatest { grid-auto-columns:calc((100% - 12px) / 2.15); gap:10px; }
+          #hmGridOngoing { grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px 7px; }
+          .hm-ac-title { font-size:10px; line-height:1.35; }
+        }
+        @media (min-width:761px) {
+          .hm-content-wrap { max-width:1180px; padding-left:28px; padding-right:28px; }
+          #hmGridAnimeLatest { grid-auto-columns:calc((100% - 36px) / 4); }
+        }
+        .hm-anime-card { transition: transform .18s ease, opacity .18s ease; }
+        .hm-anime-card:hover { transform:translateY(-3px); }
+        @media (prefers-reduced-motion: reduce) { .hm-anime-card { transition:none; } }
+    </style>
+</head>
+<body>
+    <div id="dynamicIsland">
+        <div class="di-icon" id="diIcon"></div>
+        <div class="di-text" id="diText"></div>
+    </div>
+    
+    <nav class="hm-top-navbar" id="hmTopNav">
+        <div class="hm-nav-container">
+            <div class="hm-brand hm-interactive" id="hmNavBrand" onclick="hmNavTo('home', 0)">
+                <div class="hm-brand-icon"><i class="ph-bold ph-play-circle"></i></div>
+                <div class="hm-brand-text"><span>NS</span> <b id="hmBrandMode">Anime</b></div>
+            </div>
+            <div class="hm-top-actions">
+                <!-- Mode switch removed: this page is Anime-only. -->
+                <button class="hm-action-btn hm-interactive" onclick="hmNavTo('search', 1)"><i class="ph-bold ph-magnifying-glass"></i></button>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="hm-main-layout" id="hmMainLayout" onscroll="handleScroll()">
+        <div id="hmViewHome" class="hm-view-layer hm-view-active">
+            <div class="hm-content-wrap">
+                <div class="hm-hero-slider" id="hmHeroSlider"><div class="hm-hero-slide skeleton"></div></div>
+                <div class="hm-slider-dots" id="hmSliderDots"></div>
+                
+                <div class="hm-section-header"><div class="hm-section-title">🔥 Sedang Tayang</div></div>
+                <div class="hm-anime-grid" id="hmGridOngoing">
+                    <div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div>
+                </div>
+                
+                <div class="hm-section-header"><div class="hm-section-title">✦ Anime Terbaru <span style="font-size:11px;color:var(--text-muted);font-weight:600;margin-left:8px">Geser untuk melihat lainnya →</span></div></div>
+                <div class="hm-anime-grid" id="hmGridAnimeLatest">
+                    <div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div>
+                </div>
+
+                <div class="hm-genre-section">
+                    <div class="hm-genre-header">
+                        <div class="hm-genre-title"><div class="hm-genre-icon"><i class="ph-bold ph-tag"></i></div>Genre Populer</div>
+                        <div class="hm-section-more hm-interactive" onclick="hmNavTo('search',1);setTimeout(()=>hmSwitchCatalogTab('genre',document.getElementById('tabGen')),50)"><i class="ph-bold ph-caret-right"></i></div>
+                    </div>
+                    <div class="hm-genre-grid" id="hmGridPopGenre">
+                        <div class="skeleton" style="height:35px"></div><div class="skeleton" style="height:35px"></div><div class="skeleton" style="height:35px"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="hmViewSearch" class="hm-view-layer">
+            <div class="hm-content-wrap">
+                <div class="hm-search-container">
+                    <i class="ph-bold ph-magnifying-glass hm-search-icon"></i>
+                    <input type="text" class="hm-search-input" id="hmSearchInput" placeholder="Cari judul..." onkeyup="if(event.key==='Enter') hmDoSearch(this.value)">
+                </div>
+                <div class="hm-jadwal-tabs">
+                    <div class="hm-jadwal-tab active hm-interactive" id="tabGen" onclick="hmSwitchCatalogTab('genre', this)"><i class="ph-bold ph-swatches"></i> Genre</div>
+                    <div class="hm-jadwal-tab hm-interactive" onclick="hmSwitchCatalogTab('jadwal', this)"><i class="ph-bold ph-calendar-blank"></i> Jadwal Rilis</div>
+                    <div class="hm-jadwal-tab hm-interactive" onclick="hmSwitchCatalogTab('alfabet', this)"><i class="ph-bold ph-sort-ascending"></i> A-Z List</div>
+                </div>
+                <div id="catalogContent">
+                    <div class="hm-genre-grid" id="hmFullGenreGrid" style="grid-template-columns: repeat(2, 1fr);"></div>
+                </div>
+                <div class="hm-section-header" id="hmSearchHeader" style="display: none;">
+                    <div class="hm-section-title" id="hmSearchTitle">Hasil Pencarian</div>
+                </div>
+                <div class="hm-anime-grid" id="hmGridSearch"></div>
+            </div>
+        </div>
+
+        <div id="hmViewLibrary" class="hm-view-layer">
+            <div class="hm-content-wrap">
+                <div class="hm-section-header">
+                    <div class="hm-section-title" id="libTitleLabel"><i class="ph-bold ph-bookmark-simple"></i> Koleksi Kamu</div>
+                </div>
+                <div class="hm-jadwal-tabs" style="justify-content: center; margin-bottom: 24px;">
+                    <div class="hm-jadwal-tab active hm-interactive" id="tabHist" onclick="hmSwitchLib('hist', this)"><i class="ph-bold ph-clock-counter-clockwise"></i> Lanjutkan</div>
+                    <div class="hm-jadwal-tab hm-interactive" id="tabFav" onclick="hmSwitchLib('fav', this)"><i class="ph-bold ph-heart"></i> Watchlist</div>
+                </div>
+                <div class="hm-anime-grid" id="hmGridLibrary"></div>
+            </div>
+        </div>
+
+        <div id="hmViewDetail" class="hm-view-layer">
+            <div class="hm-content-wrap" id="hmDetailContent"></div>
+        </div>
+
+        <div id="hmViewManhwaHome" class="hm-view-layer">
+            <div class="hm-content-wrap">
+                <div class="hm-hero-slide" style="width:100%; aspect-ratio:auto; padding:24px 20px; background:var(--card-bg); border: 1px solid var(--glass-border);">
+                    <div class="hm-hero-tag"><i class="ph-bold ph-book-open"></i> MANHWA</div>
+                    <div class="hm-hero-title" style="margin-bottom:8px; font-size: 20px;">Manhwa, Manga & Comic</div>
+                    <div style="font-size:11px;color:var(--text-muted);line-height:1.6;font-weight:500;">Koleksi komik terlengkap dengan pembaca yang responsif.</div>
+                </div>
+                <div class="hm-search-container" style="margin-top:20px;">
+                    <i class="ph-bold ph-magnifying-glass hm-search-icon"></i>
+                    <input type="text" class="hm-search-input" id="hmComicSearchInput" placeholder="Cari judul komik..." onkeyup="if(event.key==='Enter') comicSearch(this.value)">
+                </div>
+                <div class="hm-jadwal-tabs">
+                    <div class="hm-jadwal-tab active hm-interactive" id="comicTabLatest" onclick="hmDoComicFilter('latest',this)"><i class="ph-bold ph-clock"></i> Terbaru</div>
+                    <div class="hm-jadwal-tab hm-interactive" onclick="hmDoComicFilter('popular',this)"><i class="ph-bold ph-fire"></i> Populer</div>
+                    <div class="hm-jadwal-tab hm-interactive" onclick="hmDoComicFilter('random',this)"><i class="ph-bold ph-shuffle"></i> Acak</div>
+                </div>
+                <div class="hm-section-header">
+                    <div class="hm-section-title">Katalog Komik</div>
+                </div>
+                <div class="hm-anime-grid" id="hmComicGrid">
+                    <div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="hmViewManhwaDetail" class="hm-view-layer">
+            <div class="hm-content-wrap" id="hmComicDetailContent"></div>
+        </div>
+
+        <div id="hmViewManhwaReader" class="hm-view-layer">
+            <div class="hm-content-wrap" id="hmComicReaderContent"></div>
+        </div>
+
+        <div id="hmViewStream" class="hm-view-layer">
+            <div class="hm-content-wrap">
+                <div class="hm-stream-player" id="hmStreamPlayerBox">
+                    <div class="hm-iframe-blocker hm-interactive" id="hmStreamBlocker" onclick="playIframe()"><i class="ph-fill ph-play-circle" style="font-size: 50px; color: var(--brand-primary); filter: drop-shadow(0 4px 10px rgba(0,0,0,0.8));"></i></div>
+                    <iframe id="hmStreamIframe" class="hm-stream-iframe" allowfullscreen allow="autoplay; fullscreen"></iframe>
+                    <div class="hm-fullscreen-btn hm-interactive" id="hmFullscreenBtn" onclick="hmToggleFullscreen()"><i class="ph-bold ph-corners-out" id="hmFullscreenIcon"></i></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:12px; margin-bottom: 24px;">
+                    <button class="hm-btn-secondary hm-interactive" id="btnPrevEp" onclick="hmNavPrev()" style="flex:1; display:none;"><i class="ph-bold ph-caret-left"></i> Prev</button>
+                    <button class="hm-btn-secondary hm-interactive" id="btnNextEp" onclick="hmNavNext()" style="flex:1; display:none;">Next <i class="ph-bold ph-caret-right"></i></button>
+                </div>
+                <div class="hm-stream-info">
+                    <div class="hm-stream-title" id="hmStreamTitle">Memuat episode...</div>
+                    <div class="hm-dtl-tag" style="display:inline-flex; font-size:10px; background: rgba(212,175,55,0.1); color: var(--brand-primary); border-color: var(--brand-primary);" id="hmStreamCredit">Menyiapkan...</div>
+                </div>
+                <div id="hmStreamSynopsisBox" class="hm-dtl-box" style="padding: 16px; margin-bottom: 24px;">
+                    <div id="hmStreamSynopsis" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 11px; color: var(--text-muted); line-height: 1.6; font-weight: 500;"></div>
+                    <div id="btnMoreSyn" style="color: var(--brand-primary); font-size: 11px; cursor: pointer; margin-top: 8px; font-weight: 800;" onclick="hmToggleSyn()">Selengkapnya</div>
+                </div>
+                <div id="hmStreamServersContainer">
+                    <div class="skeleton" style="height:44px; border-radius:10px;"></div>
+                </div>
+                <div class="hm-section-header"><div class="hm-section-title">Pilih Episode</div></div>
+                <div class="hm-ep-grid" id="hmStreamEpsList"></div>
+            </div>
+        </div>
+    </main>
+
+    <nav class="hm-bottom-nav" id="hmBottomNav">
+        <ul class="hm-nav-list">
+            <li class="hm-nav-item active hm-interactive" onclick="hmNavTo('home', 0)">
+                <i class="ph-fill ph-house hm-nav-icon"></i>
+                <span class="hm-nav-label">Home</span>
+            </li>
+            <li class="hm-nav-item hm-interactive" onclick="hmNavTo('search', 1)">
+                <i class="ph-fill ph-compass hm-nav-icon"></i>
+                <span class="hm-nav-label">Explore</span>
+            </li>
+            <li class="hm-nav-item hm-interactive" onclick="hmNavTo('library', 2)">
+                <i class="ph-fill ph-bookmark-simple hm-nav-icon"></i>
+                <span class="hm-nav-label">Koleksi</span>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="hm-server-modal-backdrop" id="hmServerModal" onclick="if(event.target===this)closeServerMenu()">
+        <div class="hm-server-modal">
+            <div class="hm-server-modal-head">
+                <div><div class="hm-server-modal-title">Kategori Mode</div><div class="hm-server-modal-sub">Pilih mode aplikasi</div></div>
+                <button class="hm-action-btn hm-interactive" style="background: rgba(255,255,255,0.05);" onclick="closeServerMenu()"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <button class="hm-server-option active hm-interactive" id="serverAnimeOption" onclick="switchMode('anime')">
+                <i class="ph-fill ph-play-circle"></i>
+                <div><b>Mode Anime</b><span>Streaming jutaan episode</span></div>
+            </button>
+            <button class="hm-server-option hm-interactive" id="serverManhwaOption" onclick="switchMode('manhwa')">
+                <i class="ph-fill ph-book-open"></i>
+                <div><b>Mode Manhwa</b><span>Baca komik, manga & manhua</span></div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function makeSafe(str) {
+            return encodeURIComponent(str || '').replace(/'/g, "%27").replace(/"/g, "%22");
+        }
+
+        const API_BASE = (typeof CONFIG_SISTEM !== 'undefined' && CONFIG_SISTEM.api_base) ? CONFIG_SISTEM.api_base : "https://www.sankavollerei.web.id";
+        const HYBRID_API_BASE = (typeof CONFIG_SISTEM !== 'undefined' && CONFIG_SISTEM.hybrid_api_base) ? CONFIG_SISTEM.hybrid_api_base.replace(/\/$/, '') : '';
+        async function hybridFetch(path, params = {}) {
+            if (!HYBRID_API_BASE && location.protocol === 'file:') return null;
+            const url = new URL((HYBRID_API_BASE || location.origin) + path);
+            Object.entries(params).forEach(([k,v]) => { if(v !== undefined && v !== null && v !== '') url.searchParams.set(k,v); });
+            try { const r = await fetch(url, {headers:{'Accept':'application/json'}}); if(!r.ok) return null; return await r.json(); } catch(e) { return null; }
+        }
+        
+        let cachedGenres = [];
+        let cachedRilis = {};
+        let cachedAlpha = [];
+        let currentDetailEps = [];
+        let cDtlTitle = "";
+        let cDtlPoster = "";
+        let cDtlScore = "";
+        let cDtlHref = "";
+        let cDtlSource = "default";
+        let cDtlSynopsis = "";
+        let currentRating = 0;
+        let db = null;
+        let firebaseInitialized = false;
+        let currentReviewRef = null;
+        let currentChapterIdx = 0;
+        let currentMode = 'anime';
+        localStorage.setItem('nest_animanga_mode', 'anime');
+        
+        let comicDetailData = null;
+        let comicCurrentSlug = '';
+        let comicCurrentTitle = '';
+        let comicCurrentCover = '';
+        let comicCurrentChapter = '';
+        let comicCurrentSource = 'default';
+        let comicChapterNav = {};
+        let comicReviewRef = null;
+        let comicRating = 0;
+        let pendingIframeUrl = '';
+        let diTimeout;
+
+        let currentPage = { ongoing: 1, completed: 1, manhwa: 1, search: 1 };
+        let activeComicFilter = 'latest';
+
+        function handleScroll() {
+            const nav = document.getElementById('hmTopNav');
+            const main = document.getElementById('hmMainLayout');
+            if(main.scrollTop > 10) nav.classList.add('scrolled');
+            else nav.classList.remove('scrolled');
+        }
+
+        function cleanSlug(str) {
+            if(str === null || str === undefined) return '';
+            let s = String(str).trim();
+            if(!s || s === 'undefined' || s === 'null') return '';
+            s = s.split('?')[0].split('#')[0].trim();
+            try { s = decodeURIComponent(s); } catch(e) {}
+            s = s.replace(/^https?:\/\/[^/]+/i, '');
+            s = s.replace(/^\/+/, '').replace(/\/+$/, '');
+            const parts = s.split('/').filter(Boolean);
+            if(!parts.length) return '';
+            return parts[parts.length - 1].trim();
+        }
+
+        function unwrapPayload(raw) {
+            let value = raw;
+            const seen = new Set();
+            for(let i = 0; i < 8 && value && typeof value === 'object' && !Array.isArray(value); i++) {
+                if(seen.has(value)) break;
+                seen.add(value);
+                if(value.data !== undefined && value.data !== value) { value = value.data; continue; }
+                if(value.result !== undefined && value.result !== value) { value = value.result; continue; }
+                if(value.response !== undefined && value.response !== value) { value = value.response; continue; }
+                break;
+            }
+            return value;
+        }
+
+        function toArray(value) {
+            if(Array.isArray(value)) return value;
+            if(value && typeof value === 'object') return Object.values(value);
+            return [];
+        }
+
+        function getItemIdentity(item) {
+            if(!item || typeof item !== 'object') return '';
+            const candidates = [
+                item.slug, item.animeSlug, item.mangaSlug, item.comicSlug,
+                item.href, item.url, item.link, item.path, item.endpoint,
+                item.anime_id, item.manga_id, item.mangaId, item.comic_id,
+                item.id, item.identifier
+            ];
+            for(const value of candidates) {
+                if(value === null || value === undefined || value === '') continue;
+                const slug = cleanSlug(value);
+                if(slug && slug !== 'undefined' && slug !== 'null') return slug;
+            }
+            return '';
+        }
+
+        function getImageUrl(item, fallback) {
+            if(!item || typeof item !== 'object') return fallback || '';
+            const image = item.poster || item.cover_portrait || item.image || item.cover || item.thumbnail || item.thumb || item.cover_url || item.image_url || item.img || fallback || '';
+            return typeof image === 'object' ? (image.url || image.src || image.large || image.medium || '') : String(image);
+        }
+
+        function getField(obj, paths, fallback = '') {
+            if(!obj || typeof obj !== 'object') return fallback;
+            for(const path of paths) {
+                const parts = String(path).split('.');
+                let value = obj;
+                for(const part of parts) {
+                    if(value === null || value === undefined) break;
+                    value = value[part];
+                }
+                if(value !== undefined && value !== null && value !== '') {
+                    if(typeof value === 'object' && !Array.isArray(value)) {
+                        const nested = value.name || value.title || value.text || value.value || value.url;
+                        if(nested !== undefined && nested !== null && nested !== '') return nested;
+                    } else return value;
+                }
+            }
+            return fallback;
+        }
+
+        function getArrayField(obj, keys) {
+            if(!obj || typeof obj !== 'object') return [];
+            for(const key of keys) {
+                const value = obj[key];
+                if(Array.isArray(value)) return value;
+                if(value && typeof value === 'object') {
+                    const arr = Object.values(value);
+                    if(arr.length) return arr;
+                }
+            }
+            return [];
+        }
+
+        function normalizeGenres(raw) {
+            const value = unwrapPayload(raw);
+            if(Array.isArray(value)) return value;
+            if(!value || typeof value !== 'object') return [];
+            return getArrayField(value, ['genreList', 'genres', 'genre', 'list', 'items', 'results', 'data']).map(g => {
+                if(typeof g === 'string') return {genreId:g, title:g, name:g, slug:g};
+                return g;
+            });
+        }
+
+        function normalizeEpisodes(data) {
+            return getArrayField(data, ['episodeList', 'episodes', 'episode_list', 'episode', 'list']);
+        }
+
+        function normalizeChapters(data) {
+            return getArrayField(data, ['chapter_list', 'chapterList', 'chapters', 'chapter', 'list']);
+        }
+
+        async function apiFetch(path, params = {}) {
+            const controller = new AbortController();
+            const timeoutMs = (CONFIG_SISTEM.request && CONFIG_SISTEM.request.timeout) || 15000;
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            
+            try {
+                let targetUrl = path.startsWith('http') ? path : (API_BASE + (path.startsWith('/') ? path : '/' + path));
+                const urlObj = new URL(targetUrl);
+                
+                Object.entries(params).forEach(([k, v]) => {
+                    if (v !== '' && v !== null && v !== undefined) {
+                        urlObj.searchParams.set(k, v);
+                    }
+                });
+
+                const res = await fetch(urlObj.toString(), {
+                    signal: controller.signal,
+                    headers: { 'Accept': 'application/json' }
+                });
+                clearTimeout(timer);
+
+                if(!res.ok) return null;
+                const json = await res.json();
+                if(!json) return null;
+                return json.data !== undefined ? json.data : json;
+            } catch(err) {
+                clearTimeout(timer);
+                return null;
+            }
+        }
+
+        function extractList(raw, keys = []) {
+            if(raw === null || raw === undefined) return [];
+            const value = unwrapPayload(raw);
+            if(Array.isArray(value)) return value;
+            if(!value || typeof value !== 'object') return [];
+            const priority = [...keys, 'items', 'results', 'list', 'animeList', 'anime_list', 'comics', 'comicList', 'komikList', 'ongoing', 'completed', 'latest', 'data'];
+            for(const key of priority) {
+                if(value[key] !== undefined && value[key] !== null) {
+                    const arr = toArray(value[key]);
+                    if(arr.length) return arr;
+                }
+            }
+            for(const key of Object.keys(value)) {
+                const candidate = toArray(value[key]);
+                if(candidate.length && candidate.some(x => x && typeof x === 'object')) return candidate;
+            }
+            return [];
+        }
+
+        function extractListWithSource(raw, sourceName) {
+            const list = extractList(raw, ['animeList', 'anime_list', 'ongoing', 'completed', 'comics', 'results', 'items', 'komikList', 'latest', 'popular', 'comicList', 'list']);
+            return list.filter(item => item && typeof item === 'object').map(item => ({
+                ...item,
+                _source: item._source || sourceName || 'default',
+                _slug: getItemIdentity(item)
+            }));
+        }
+
+        function mergeAndShuffle(arrayOfArrays) {
+            const merged = [];
+            arrayOfArrays.forEach(arr => { if(Array.isArray(arr) && arr.length) merged.push(...arr); });
+            const unique = [];
+            const keys = new Set();
+            for(const item of merged) {
+                if(!item || typeof item !== 'object') continue;
+                const identity = getItemIdentity(item);
+                const title = String(item.title || item.name || '').trim().toLowerCase();
+                const normalizedTitle = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+                const key = normalizedTitle ? `title:${normalizedTitle}` : identity ? `id:${identity.toLowerCase()}` : '';
+                if(key && keys.has(key)) continue;
+                if(key) keys.add(key);
+                unique.push({...item, _slug: identity, _source: item._source || 'default'});
+            }
+            return unique;
+        }
+
+        function getBadgeText(o, type) {
+            if(!o || typeof o !== 'object') return '?';
+            let label = '';
+            if (o.latest_chapter) label = o.latest_chapter;
+            else if (o.latest_episode) label = o.latest_episode;
+            else if (o.chapter) label = typeof o.chapter === 'object' ? (o.chapter.name || o.chapter.title || '') : o.chapter;
+            else if (o.episode) label = typeof o.episode === 'object' ? (o.episode.name || o.episode.title || '') : o.episode;
+            else if (o.episodes) label = Array.isArray(o.episodes) ? o.episodes.length : o.episodes;
+            else if (o.eps) label = Array.isArray(o.eps) ? o.eps.length : o.eps;
+            else if (o.chapters && Array.isArray(o.chapters) && o.chapters.length) label = o.chapters.length;
+            else if (o.chapter_list && Array.isArray(o.chapter_list) && o.chapter_list.length) label = o.chapter_list.length;
+            else if (o.chapterList && Array.isArray(o.chapterList) && o.chapterList.length) label = o.chapterList.length;
+            else if (o.list && Array.isArray(o.list) && o.list.length) label = o.list.length;
+            else if (o.status) label = o.status;
+            else label = '?';
+
+            label = String(label).trim();
+            if(label === '[object Object]' || label === '') return '?';
+            
+            if (label !== '?' && !label.toLowerCase().includes('ep') && !label.toLowerCase().includes('ch')) {
+                if (type === 'anime') {
+                    if (/^\d+(\.\d+)?$/.test(label)) label = 'Ep ' + label;
+                    else if (label.toLowerCase().includes('episode')) label = label.replace(/episode/i, 'Ep').trim();
+                } else {
+                    if (/^\d+(\.\d+)?$/.test(label)) label = 'Ch ' + label;
+                    else if (label.toLowerCase().includes('chapter')) label = label.replace(/chapter/i, 'Ch').trim();
+                }
+            }
+            return label;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initFirebase();
+            initBanGuard();
+            initNestGuard();
+            applyMode(currentMode, false);
+            hmLoadHomeData();
+            window.addEventListener('popstate', handlePopState);
+            if (!history.state) {
+                history.replaceState({ view: 'home', mode: 'anime' }, '', '#anime');
+            }
+        });
+
+        function handlePopState(e) {
+            const state = e.state || { view: 'home', mode: 'anime' };
+            if (state.mode === 'manhwa' || String(state.view||'').toLowerCase().includes('manhwa')) { history.replaceState({view:'home',mode:'anime'}, '', '#anime'); return renderView('home'); }
+            if (state.mode && state.mode !== currentMode) applyMode(state.mode, false);
+            renderView(state.view);
+        }
+
+        function renderView(viewId) {
+            document.body.classList.remove('hm-eye-mode');
+            document.querySelectorAll('.hm-view-layer').forEach(el => el.classList.remove('hm-view-active'));
+            const targetId = 'hmView' + viewId.charAt(0).toUpperCase() + viewId.slice(1);
+            const targetEl = document.getElementById(targetId);
+            if (targetEl) targetEl.classList.add('hm-view-active');
+
+            const bNav = document.getElementById('hmBottomNav');
+            const isImmersive = ['detail', 'stream', 'manhwaDetail', 'manhwaReader'].includes(viewId);
+            if(bNav) bNav.classList.toggle('hidden', isImmersive);
+
+            if(viewId !== 'stream') {
+                const iframe = document.getElementById('hmStreamIframe');
+                if(iframe) iframe.src = '';
+                const blocker = document.getElementById('hmStreamBlocker');
+                if(blocker) blocker.style.display = 'flex';
+            }
+            if(viewId === 'library') hmSwitchLib('hist', document.getElementById('tabHist'));
+            document.getElementById('hmMainLayout').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function hmNavTo(viewId, navIdx = null) {
+            if(navIdx !== null) {
+                document.querySelectorAll('.hm-nav-item').forEach(el => el.classList.remove('active'));
+                const targetNav = document.querySelectorAll('.hm-nav-item')[navIdx];
+                if(targetNav) targetNav.classList.add('active');
+            }
+            let targetView = viewId;
+            if(viewId === 'home') targetView = currentMode === 'manhwa' ? 'manhwaHome' : 'home';
+            if(!history.state || history.state.view !== targetView) {
+                history.pushState({ view: targetView, mode: currentMode }, '', '#' + currentMode + '-' + targetView);
+            }
+            renderView(targetView);
+        }
+
+        function applyMode(mode, push = true) {
+            currentMode = mode === 'manhwa' ? 'manhwa' : 'anime';
+            localStorage.setItem('nest_animanga_mode', currentMode);
+            
+            document.getElementById('hmBrandMode').textContent = currentMode === 'anime' ? 'Anime' : 'Manhwa';
+            document.getElementById('serverAnimeOption').classList.toggle('active', currentMode === 'anime');
+            document.getElementById('serverManhwaOption').classList.toggle('active', currentMode === 'manhwa');
+            
+            document.querySelectorAll('.hm-nav-item').forEach((x, i) => x.classList.toggle('active', i === 0));
+            const viewTarget = currentMode === 'manhwa' ? 'manhwaHome' : 'home';
+            renderView(viewTarget);
+            
+            hmLoadGenres();
+            
+            if(currentMode === 'manhwa') {
+                const comicGrid = document.getElementById('hmComicGrid');
+                if(push && !comicGrid.dataset.loaded) loadComicHome('latest');
+            } else if(push) {
+                hmLoadHomeData();
+            }
+            if(push) {
+                history.pushState({ view: viewTarget, mode: currentMode }, '', '#' + currentMode);
+            }
+            if(history.state && history.state.view === 'library') {
+                hmSwitchLib(document.querySelector('#tabFav').classList.contains('active') ? 'fav' : 'hist');
+            }
+            
+            document.getElementById('catalogContent').innerHTML = '';
+            document.getElementById('hmGridSearch').innerHTML = '';
+            document.getElementById('hmSearchHeader').style.display = 'none';
+            document.getElementById('hmSearchInput').value = '';
+
+            closeServerMenu();
+        }
+
+        function switchMode(mode) {
+            if(mode === currentMode) { closeServerMenu(); return; }
+            applyMode(mode, true);
+        }
+
+        function openServerMenu() {
+            document.getElementById('hmServerModal').classList.add('active');
+            document.getElementById('serverAnimeOption').classList.toggle('active', currentMode === 'anime');
+            document.getElementById('serverManhwaOption').classList.toggle('active', currentMode === 'manhwa');
+        }
+        function closeServerMenu() {
+            document.getElementById('hmServerModal').classList.remove('active');
+        }
+
+        function showNotif(text, icon = '<i class="ph-bold ph-spinner ph-spin"></i>', keep = false) {
+            const di = document.getElementById('dynamicIsland');
+            document.getElementById('diIcon').innerHTML = icon;
+            document.getElementById('diText').textContent = text;
+            di.classList.add('active');
+            clearTimeout(diTimeout);
+            if(!keep) diTimeout = setTimeout(() => di.classList.remove('active'), 2500);
+        }
+        function hideNotif() { document.getElementById('dynamicIsland').classList.remove('active'); }
+
+        function escapeHTML(str) { 
+            return str ? String(str).replace(/[&<>"']/g, m => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'})[m]) : ''; 
+        }
+
+        function getStorageSafe(key) {
+            try { return JSON.parse(localStorage.getItem(key)) || []; } catch(e) { return []; }
+        }
+        function saveStorageSafe(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+
+        function getUserId() {
+            let userId = localStorage.getItem('hm_app_userid');
+            if(!userId) {
+                userId = 'User-' + String(Math.floor(Math.random() * 9999) + 1).padStart(4, '0');
+                localStorage.setItem('hm_app_userid', userId);
+            }
+            return userId;
+        }
+
+        function initFirebase() {
+            if (firebaseInitialized) return;
+            const cfg = (typeof CONFIG_SISTEM !== 'undefined') ? CONFIG_SISTEM.firebase : null;
+            if(cfg && window.firebase) {
+                try {
+                    if (!firebase.apps.length) firebase.initializeApp(cfg);
+                    db = firebase.database();
+                    firebaseInitialized = true;
+                } catch(e) {}
+            }
+        }
+
+        function getDeviceID() {
+            let id = "";
+            try { id = "NST-" + AndroidNest.getAndroidID().toUpperCase(); } 
+            catch (e) {
+                id = localStorage.getItem('nest_device_id');
+                if (!id) { id = 'NST-WEB-' + Math.random().toString(36).substr(2, 6).toUpperCase(); localStorage.setItem('nest_device_id', id); }
+            }
+            return id;
+        }
+
+        function initBanGuard() {
+            try {
+                if(!db) initFirebase();
+                if(!db) return;
+                const id = getDeviceID();
+                db.ref((CONFIG_SISTEM.firebasePaths?.bannedDevices || 'banned_devices') + '/' + id).on('value', snap => {
+                    if(!snap.exists()) return;
+                    const val = snap.val();
+                    const reason = (typeof val === 'object' && val) ? val.alasan : 'Device diblokir';
+                    location.replace('../ban.html?reason=' + encodeURIComponent(reason));
+                });
+            } catch(e) {}
+        }
+
+        function initNestGuard() {
+            if(!db) return;
+            const id = getDeviceID();
+            if(!id) return;
+            
+            window.updateUserActivity = function(act) {
+                db.ref('visitors/' + id).update({
+                    last_seen: new Date().toLocaleString('id-ID'),
+                    timestamp: firebase.database.ServerValue.TIMESTAMP,
+                    aktivitas: act
+                });
+            };
+            
+            window.updateUserActivity("Membuka Animanga");
+
+            db.ref('system_status/maintenance').on('value', snap => {
+                if(snap.val() === true) {
+                    db.ref('whitelisted_devices/' + id).once('value', wSnap => {
+                        if(!wSnap.exists()) {
+                            if(!document.getElementById('lockScreenOverlay')) {
+                                document.body.insertAdjacentHTML('beforeend', `<div id="lockScreenOverlay" style="height:100vh;width:100vw;background:var(--main-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;position:fixed;top:0;left:0;z-index:999999;"><i class="ph-fill ph-lock-key" style="font-size:60px;color:var(--brand-primary);margin-bottom:16px;"></i><h2 style="color:var(--text-main);font-family:'Plus Jakarta Sans', sans-serif;font-weight:900;margin-bottom:8px;">Sistem Terkunci</h2><p style="color:var(--text-muted);font-family:'Plus Jakarta Sans', sans-serif;font-size:13px;font-weight:500;">Aplikasi sedang dalam Maintenance Server.<br>Harap kembali beberapa saat lagi.</p></div>`);
+                            }
+                        }
+                    });
+                } else {
+                    const lockScreen = document.getElementById('lockScreenOverlay');
+                    if(lockScreen) location.reload();
+                }
+            });
+
+            let isFirstLoadNotif = true;
+            db.ref('notifications/latest').on('value', snap => {
+                const data = snap.val();
+                if(data && data.title && data.message) {
+                    if(isFirstLoadNotif) {
+                        isFirstLoadNotif = false;
+                        return; 
+                    }
+                    Swal.fire({
+                        title: data.title,
+                        text: data.message,
+                        icon: 'info',
+                        background: 'var(--card-bg)',
+                        color: 'var(--text-main)',
+                        confirmButtonColor: 'var(--brand-primary)',
+                        confirmButtonText: 'Mengerti'
+                    });
+                }
+            });
+        }
+
+        function renderAnimeCard(anime, source = 'default') {
+            anime = anime && typeof anime === 'object' ? anime : {};
+            const actualSource = anime._source || source || 'default';
+            const targetSlug = anime._slug || getItemIdentity(anime);
+            const title = escapeHTML(anime.title || anime.name || 'Untitled');
+            const poster = escapeHTML(getImageUrl(anime, 'https://placehold.co/200x300/0F1115/9182FF?text=Nest'));
+            let rawScore = anime.score ?? anime.rating ?? '';
+            let scoreNum = parseFloat(String(rawScore).replace(',', '.'));
+            const score = Number.isFinite(scoreNum) && scoreNum > 0 ? scoreNum.toFixed(1) : 'N/A';
+            const badgeLabel = escapeHTML(getBadgeText(anime, 'anime'));
+            if(!targetSlug) return '';
+            return `
+            <div class="hm-anime-card hm-interactive" onclick="hmLoadDetail(decodeURIComponent('${makeSafe(targetSlug)}'), decodeURIComponent('${makeSafe(actualSource)}'))">
+                <div class="hm-ac-thumb-wrap">
+                    <img src="${poster}" class="hm-ac-img" loading="lazy" onerror="this.src='https://placehold.co/200x300/0F1115/9182FF?text=Nest'">
+                    <div class="hm-ac-score"><i class="ph-fill ph-star"></i> ${score}</div>
+                    <div class="hm-ac-ep">${badgeLabel}</div>
+                </div>
+                <div class="hm-ac-title">${title}</div>
+            </div>`;
+        }
+
+        async function hmLoadHomeData() {
+            const heroSlider = document.getElementById('hmHeroSlider');
+            const ongoingGrid = document.getElementById('hmGridOngoing');
+            const latestGrid = document.getElementById('hmGridAnimeLatest');
+            if (heroSlider) heroSlider.innerHTML = '<div class="hm-hero-slide skeleton"></div>';
+            if (ongoingGrid) ongoingGrid.innerHTML = Array.from({length:8},()=>'<div class="skeleton" style="height:160px;border-radius:12px"></div>').join('');
+            if (latestGrid) latestGrid.innerHTML = Array.from({length:6},()=>'<div class="skeleton" style="height:160px;border-radius:12px"></div>').join('');
+            showNotif('Menyiapkan katalog anime...');
+            try {
+                let ongoing = [], latest = [];
+                const [hybridO, hybridC] = await Promise.all([
+                    hybridFetch('/api/anime/catalog', {type:'ongoing'}),
+                    hybridFetch('/api/anime/catalog', {type:'latest'})
+                ]);
+                if (hybridO && Array.isArray(hybridO.items)) ongoing = hybridO.items;
+                if (hybridC && Array.isArray(hybridC.items)) latest = hybridC.items;
+                if (!ongoing.length && !latest.length) {
+                    const sourceList = (CONFIG_SISTEM.anime_sources || []).filter(Boolean);
+                    const req = [];
+                    sourceList.forEach(src => {
+                        for (let p=1; p<=2; p++) {
+                            req.push(apiFetch(`/anime/${src}/ongoing`, {page:p}).then(r=>extractListWithSource(r,src)));
+                            req.push(apiFetch(`/anime/${src}/completed`, {page:p}).then(r=>extractListWithSource(r,src)));
+                        }
+                    });
+                    const home = await apiFetch('/anime/home');
+                    const hv = unwrapPayload(home);
+                    const homeO = extractListWithSource(hv?.ongoingAnime || hv?.ongoing || hv?.on_going || [], 'default');
+                    const homeC = extractListWithSource(hv?.completeAnime || hv?.completed || hv?.complete || hv?.latest || [], 'default');
+                    const settled = await Promise.allSettled(req);
+                    const allO = [homeO], allC = [homeC];
+                    settled.forEach((r,i)=>{ if(r.status==='fulfilled') ((i%4<2)?allO:allC).push(r.value||[]); });
+                    ongoing = mergeAndShuffle(allO);
+                    latest = mergeAndShuffle(allC);
+                } else {
+                    ongoing = mergeAndShuffle([ongoing]);
+                    latest = mergeAndShuffle([latest]);
+                }
+                currentPage.ongoing = 1; currentPage.completed = 1;
+                const heroItems = ongoing.slice(0,5);
+                if (heroSlider) heroSlider.innerHTML = heroItems.length ? heroItems.map(a => {
+                    const slug = a._slug || getItemIdentity(a);
+                    const source = a._source || 'default';
+                    const scoreNum = parseFloat(String(a.score ?? a.rating ?? '').replace(',', '.'));
+                    const score = Number.isFinite(scoreNum) && scoreNum > 0 ? scoreNum.toFixed(1) : '';
+                    const poster = escapeHTML(getImageUrl(a, 'https://placehold.co/500x280/101116/B7AAFF?text=Nest+Stream'));
+                    if(!slug) return '';
+                    return `<div class="hm-hero-slide hm-interactive" onclick="hmLoadDetail(decodeURIComponent('${makeSafe(slug)}'), decodeURIComponent('${makeSafe(source)}'))"><img src="${poster}" class="hm-hero-img" loading="lazy" onerror="this.src='https://placehold.co/500x280/101116/B7AAFF?text=Nest+Stream'"><div class="hm-hero-overlay"><div class="hm-hero-tag"><i class="ph-bold ph-sparkle"></i> Pilihan Anime ${score ? '&nbsp; | &nbsp;'+score : ''}</div><div class="hm-hero-title">${escapeHTML(a.title || a.name || '')}</div></div></div>`;
+                }).join('') : '<div class="hm-empty">Katalog belum tersedia. Coba muat ulang.</div>';
+                const dots = document.getElementById('hmSliderDots');
+                if(dots) dots.innerHTML = heroItems.map((_,i)=>`<div class="hm-dot ${i===0?'active':''}"></div>`).join('');
+                if(heroSlider) heroSlider.onscroll = () => { const n=Math.round(heroSlider.scrollLeft/Math.max(heroSlider.offsetWidth,1)); document.querySelectorAll('.hm-dot').forEach((d,i)=>d.classList.toggle('active',i===n)); };
+                if(ongoingGrid) ongoingGrid.innerHTML = ongoing.length ? ongoing.slice(0,24).map(a=>renderAnimeCard(a,a._source||'default')).filter(Boolean).join('') : '<div class="hm-empty">Belum ada anime sedang tayang.</div>';
+                if(latestGrid) latestGrid.innerHTML = latest.length ? latest.slice(0,60).map(a=>renderAnimeCard(a,a._source||'default')).filter(Boolean).join('') : '<div class="hm-empty">Belum ada anime terbaru.</div>';
+                ongoingGrid.dataset.loaded = latestGrid.dataset.loaded = '1';
+                if ((hybridO && hybridO.refreshing) || (hybridC && hybridC.refreshing)) {
+                    let attempts = 0;
+                    const refreshExpandedCatalog = async () => {
+                        if (++attempts > 8) return;
+                        await new Promise(resolve => setTimeout(resolve, 9000));
+                        const [freshO, freshL] = await Promise.all([
+                            hybridFetch('/api/anime/catalog', {type:'ongoing'}),
+                            hybridFetch('/api/anime/catalog', {type:'latest'})
+                        ]);
+                        const nextO = freshO && Array.isArray(freshO.items) ? mergeAndShuffle([freshO.items]) : [];
+                        const nextL = freshL && Array.isArray(freshL.items) ? mergeAndShuffle([freshL.items]) : [];
+                        if (nextO.length > ongoing.length && ongoingGrid) ongoingGrid.innerHTML = nextO.slice(0,24).map(a=>renderAnimeCard(a,a._source||'default')).filter(Boolean).join('');
+                        if (nextL.length > latest.length && latestGrid) latestGrid.innerHTML = nextL.slice(0,60).map(a=>renderAnimeCard(a,a._source||'default')).filter(Boolean).join('');
+                        if ((freshO && freshO.refreshing) || (freshL && freshL.refreshing)) refreshExpandedCatalog();
+                    };
+                    refreshExpandedCatalog();
+                }
+            } catch(e) {
+                if(heroSlider) heroSlider.innerHTML='<div class="hm-empty">Katalog sedang sulit dijangkau.</div>';
+                if(ongoingGrid) ongoingGrid.innerHTML='<div class="hm-empty">Gagal memuat anime. Coba lagi.</div>';
+                if(latestGrid) latestGrid.innerHTML='<div class="hm-empty">Gagal memuat anime terbaru.</div>';
+            } finally { hideNotif(); }
+        }
+
+        async function loadMoreGrid(type, btnElement) {
+            if(!btnElement || btnElement.dataset.loading === '1') return;
+            btnElement.dataset.loading = '1';
+            btnElement.disabled = true;
+            btnElement.innerHTML = '<i class="ph-bold ph-spinner ph-spin"></i> Memuat...';
+            currentPage[type] = Number(currentPage[type] || 1) + 1;
+            let res = null, list = [];
+            try {
+                if(type === 'ongoing') {
+                    res = await apiFetch('/anime/ongoing-anime', {page: currentPage[type]});
+                    list = extractListWithSource(res, 'default').map(item => renderAnimeCard(item, item._source)).filter(Boolean);
+                } else if(type === 'completed') {
+                    res = await apiFetch('/anime/complete-anime', {page: currentPage[type]});
+                    list = extractListWithSource(res, 'default').map(item => renderAnimeCard(item, item._source)).filter(Boolean);
+                } else if(type === 'manhwa') {
+                    const ep = activeComicFilter === 'popular' ? '/comic/populer' : '/comic/terbaru';
+                    res = await apiFetch(ep, {page: currentPage[type], limit: 20});
+                    list = extractListWithSource(res, 'default').map(item => comicCard(item, item._source)).filter(Boolean);
+                }
+                if(list.length) {
+                    btnElement.insertAdjacentHTML('beforebegin', list.join(''));
+                    btnElement.innerHTML = 'Load More <i class="ph-bold ph-caret-down"></i>';
+                    btnElement.disabled = false;
+                    btnElement.dataset.loading = '0';
+                } else {
+                    btnElement.innerHTML = 'Semua data dimuat';
+                    btnElement.disabled = true;
+                }
+            } catch(e) {
+                currentPage[type] = Math.max(1, currentPage[type] - 1);
+                btnElement.innerHTML = 'Gagal, Coba Lagi';
+                btnElement.disabled = false;
+                btnElement.dataset.loading = '0';
+            }
+        }
+
+        async function hmLoadGenres() {
+            const ep=currentMode==='manhwa'?'/comic/genres':'/anime/genre';
+            const data=await apiFetch(ep);
+            cachedGenres=normalizeGenres(data);
+            if(cachedGenres.length) {
+                const popGenres=currentMode==='manhwa'?['Action','Fantasy','Romance','Murim','Isekai','School Life','Magic']:['Action','Adventure','Comedy','Drama','Fantasy','Romance'];
+                const filtered=cachedGenres.filter(g=>popGenres.some(x=>String(g.title||g.name||'').toLowerCase()===x.toLowerCase()));
+                const toRender=filtered.length?filtered:cachedGenres.slice(0,6);
+                const gridHTML=toRender.map(g=>{
+                    const gId=g.genreId||g.slug||g.id||g.name||g.title||'';
+                    const gTitle=g.title||g.name||gId;
+                    return `<div class="hm-genre-btn hm-interactive" onclick="hmDoFilterGenre(decodeURIComponent('${makeSafe(gId)}'), decodeURIComponent('${makeSafe(gTitle)}'))">${escapeHTML(gTitle)}</div>`;
+                }).join('');
+                const pGrid=document.getElementById('hmGridPopGenre');
+                if(pGrid) pGrid.innerHTML=gridHTML;
+                hmRenderCatalogGenres();
+            } else {
+                const pGrid=document.getElementById('hmGridPopGenre');
+                const fullGrid=document.getElementById('hmFullGenreGrid');
+                if(pGrid) pGrid.innerHTML='<div class="hm-empty">Gagal memuat genre.</div>';
+                if(fullGrid) fullGrid.innerHTML='<div class="hm-empty">Gagal memuat genre.</div>';
+            }
+        }
+
+        function hmRenderCatalogGenres() {
+            const container = document.getElementById('hmFullGenreGrid');
+            if(!container) return;
+            container.innerHTML = cachedGenres.map(g => {
+                const gId = g.genreId || g.slug || g;
+                const gTitle = g.title || g.name || g;
+                return `<div class="hm-genre-btn hm-interactive" onclick="hmDoFilterGenre(decodeURIComponent('${makeSafe(gId)}'), decodeURIComponent('${makeSafe(gTitle)}'))">${escapeHTML(gTitle)}</div>`;
+            }).join('');
+        }
+
+        async function hmSwitchCatalogTab(tabId, el) {
+            document.querySelectorAll('#hmViewSearch .hm-jadwal-tab').forEach(t => t.classList.remove('active'));
+            if(el) el.classList.add('active');
+            const contentDiv = document.getElementById('catalogContent');
+            contentDiv.innerHTML = '<div class="skeleton" style="height: 160px; width: 100%; border-radius: var(--radius-lg);"></div>';
+            document.getElementById('hmSearchHeader').style.display = 'none';
+            document.getElementById('hmGridSearch').innerHTML = '';
+
+            if (tabId === 'genre') {
+                contentDiv.innerHTML = '<div class="hm-genre-grid" id="hmFullGenreGrid" style="grid-template-columns: repeat(2, 1fr);"></div>';
+                hmRenderCatalogGenres();
+            } else if (tabId === 'jadwal') {
+                showNotif('Memuat Jadwal...');
+                const ep = currentMode === 'manhwa' ? '/comic/schedule' : '/anime/schedule';
+                const data = await apiFetch(ep);
+                cachedRilis = {};
+                const scheduleArr = Array.isArray(data) ? data : (data?.scheduleList || data?.list || data?.data || []);
+                scheduleArr.forEach(dayData => {
+                    cachedRilis[dayData.day] = dayData.animeList || dayData.anime_list || dayData.comicList || dayData.comic_list || dayData.list || [];
+                });
+                hideNotif();
+                renderJadwal(contentDiv);
+            } else if (tabId === 'alfabet') {
+                showNotif('Memuat Index...');
+                const ep = currentMode === 'manhwa' ? '/comic/list' : '/anime/animelist';
+                const data = await apiFetch(ep);
+                cachedAlpha = (data && (data.list || data.animeList || data.comicList || data.data)) ? (data.list || data.animeList || data.comicList || data.data) : (Array.isArray(data) ? data : []);
+                hideNotif();
+                renderAlfabet(contentDiv);
+            }
+        }
+
+        function renderJadwal(container) {
+            let html = '<div style="display:flex;flex-direction:column;gap:16px;">';
+            const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+            let hasData = false;
+            days.forEach(day => {
+                if(cachedRilis[day] && cachedRilis[day].length > 0) {
+                    hasData = true;
+                    html += `
+                    <div class="hm-dtl-box" style="margin-bottom:0; padding:16px;">
+                        <div class="hm-dtl-box-title" style="color:var(--brand-primary); font-size:14px;"><i class="ph-bold ph-calendar"></i> ${day}</div>
+                        <div class="hm-jadwal-scroll">
+                            ${cachedRilis[day].map(a => currentMode === 'manhwa' ? comicCard(a, 'default') : renderAnimeCard(a, 'default')).join('')}
+                        </div>
+                    </div>`;
+                }
+            });
+            if(!hasData) html += '<div class="hm-empty">Tidak ada jadwal tersedia.</div>';
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function renderAlfabet(container) {
+            if(!cachedAlpha || cachedAlpha.length === 0) {
+                container.innerHTML = '<div class="hm-empty">Daftar A-Z tidak tersedia.</div>';
+                return;
+            }
+            let html = '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px;">';
+            cachedAlpha.forEach(group => {
+                const char = group.startWith || group.letter || '?';
+                html += `<div class="hm-genre-btn hm-interactive" style="padding:8px 16px; border-radius: 12px;" onclick="renderAlphaList('${char}')">${char}</div>`;
+            });
+            html += '</div><div id="alphaListContainer" style="display:flex; flex-direction:column; gap:10px;"></div>';
+            container.innerHTML = html;
+        }
+
+        function renderAlphaList(letter) {
+            const group = cachedAlpha.find(g => (g.startWith || g.letter) === letter);
+            const container = document.getElementById('alphaListContainer');
+            const list = group ? (group.animeList || group.comicList || group.list || []) : [];
+            if(list.length > 0) {
+                container.innerHTML = list.map(a => `
+                    <div class="hm-dtl-box hm-interactive" onclick="${currentMode === 'manhwa' ? 'openComicDetail' : 'hmLoadDetail'}(decodeURIComponent('${makeSafe(cleanSlug(a.href || a.slug))}'), 'default')" style="padding:16px 20px; margin-bottom:0; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="font-size: 13px; font-weight:800;">${escapeHTML(a.title || a.name)}</div>
+                        <i class="ph-bold ph-caret-right" style="color:var(--brand-primary); font-size:16px;"></i>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="hm-empty">Data kosong.</div>';
+            }
+        }
+
+        async function hmDoSearch(query) {
+            const q=query.trim();
+            if(q.length<2) return showNotif('Ketik minimal 2 karakter','<i class="ph-bold ph-warning"></i>');
+            showNotif('Mencari...');
+            document.getElementById('catalogContent').innerHTML='';
+            const hybrid = await hybridFetch('/api/anime/search', {q, page:1});
+            if(hybrid && Array.isArray(hybrid.items) && hybrid.items.length) {
+                renderSearchResults(hybrid.items, `Pencarian: "${escapeHTML(q)}"`);
+                return;
+            }
+            const raw=await apiFetch('/anime/search/'+encodeURIComponent(q));
+            renderSearchResults(extractListWithSource(raw,'default'),`Pencarian: "${escapeHTML(q)}"`);
+        }
+
+        async function hmDoFilterGenre(genreId, genreTitle) {
+            showNotif(`Filter: ${genreTitle}`);
+            document.getElementById('catalogContent').innerHTML='';
+            const ep=currentMode==='manhwa'?'/comic/genre/':'/anime/genre/';
+            const raw=await apiFetch(ep+encodeURIComponent(genreId));
+            renderSearchResults(extractListWithSource(raw,'default'),`Genre: ${escapeHTML(genreTitle)}`);
+        }
+
+        function renderSearchResults(dataArray,title) {
+            const header=document.getElementById('hmSearchHeader');
+            const titleEl=document.getElementById('hmSearchTitle');
+            const grid=document.getElementById('hmGridSearch');
+            header.style.display='flex';
+            titleEl.innerHTML=title;
+            grid.innerHTML=dataArray.length?dataArray.map(a=>currentMode==='manhwa'?comicCard(a,a._source||'default'):renderAnimeCard(a,a._source||'default')).join(''):'<div class="hm-empty">Tidak ada hasil.</div>';
+            hideNotif();
+        }
+
+        window.hmLoadFullList = async function(type) {
+            hmNavTo('search', 1);
+            document.getElementById('catalogContent').innerHTML = '';
+            showNotif('Memuat daftar lengkap...');
+            const aSources = (CONFIG_SISTEM.anime_sources || []).sort(() => 0.5 - Math.random()).slice(0, 3);
+            let promises = [];
+            aSources.forEach(src => {
+                for(let p=1; p<=2; p++) {
+                    promises.push(apiFetch(`/anime/${src}/${type}`, {page: p}).then(res => extractListWithSource(res, src)));
+                }
+            });
+            promises.push(apiFetch(type === 'ongoing' ? '/anime/ongoing-anime' : '/anime/complete-anime', { page: 1 }).then(res => extractListWithSource(extractList(res, ['animeList', 'anime_list', type]), 'default')));
+            
+            const results = await Promise.allSettled(promises);
+            const list = mergeAndShuffle(results.map(r => r.status === 'fulfilled' ? r.value : []));
+            renderSearchResults(list, type === 'ongoing' ? 'Anime Sedang Tayang' : 'Anime Tamat');
+        };
+
+        window.setRating = function(val) {
+            currentRating = val;
+            for(let i=1; i<=5; i++) {
+                const star = document.getElementById('star_'+i);
+                if(!star) continue;
+                star.classList.toggle('ph-fill', i<=val);
+                star.classList.toggle('ph-bold', i>val);
+                star.style.color = i<=val ? '#9182FF' : 'var(--text-muted)';
+            }
+        };
+
+        window.submitReview = async function() {
+            if(!cDtlHref) return showNotif('Data belum siap', '<i class="ph-bold ph-warning"></i>');
+            const text = document.getElementById('reviewText')?.value.trim();
+            if(!currentRating || !text) return showNotif('Beri rating & ulasan', '<i class="ph-bold ph-warning"></i>');
+            if(!db) return showNotif('Koneksi database gagal', '<i class="ph-bold ph-warning"></i>');
+
+            showNotif('Mengirim ulasan...');
+            const safeKey = cleanSlug(cDtlHref).replace(/[^a-zA-Z0-9_-]/g, '_');
+            try {
+                await db.ref(`Anime/reviews/${safeKey}`).push({
+                    userId: getUserId(),
+                    rating: currentRating,
+                    text: text,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+                document.getElementById('reviewText').value = '';
+                setRating(0);
+                showNotif('Ulasan terkirim!', '<i class="ph-bold ph-check"></i>');
+            } catch(err) {
+                showNotif('Gagal mengirim ulasan', '<i class="ph-bold ph-warning"></i>');
+            }
+        };
+
+        function renderReviewsHTML(reviews) {
+            const container = document.getElementById('reviewContainer');
+            if(!container) return;
+            if(!reviews.length) {
+                container.innerHTML = '<div style="text-align:center; padding:20px 10px; opacity:0.5; font-weight:600;">Belum ada ulasan. Jadilah yang pertama!</div>';
+                return;
+            }
+            container.innerHTML = reviews.map(r => `
+                <div style="background:rgba(255,255,255,0.03); padding:14px; border-radius:12px; margin-bottom:10px; border: 1px solid var(--glass-border);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="color:#9182FF; font-weight:800; font-size:12px;"><i class="ph-fill ph-star"></i> ${r.rating || 0}/5</span>
+                            <span style="font-weight:800; font-size:11px; color:var(--text-muted);">${escapeHTML(r.userId || 'User')}</span>
+                        </div>
+                        <span style="opacity:0.4; font-size:10px; font-weight:600;">${r.timestamp ? new Date(r.timestamp).toLocaleDateString('id-ID') : ''}</span>
+                    </div>
+                    <div style="line-height:1.5; font-weight:500; font-size:12px;">${escapeHTML(r.text || '')}</div>
+                </div>
+            `).join('');
+        }
+
+        async function hmLoadDetail(rawSlug, source = 'default') {
+            const slug = cleanSlug(rawSlug);
+            if(!slug) return;
+            hmNavTo('detail');
+            cDtlSource = source;
+            const content = document.getElementById('hmDetailContent');
+            content.innerHTML = `<div class="skeleton" style="width:100%; aspect-ratio:16/10; border-radius:var(--radius-xl);"></div><div class="skeleton" style="width:60%; height:20px; margin:20px auto;"></div>`;
+            showNotif('Memuat detail...');
+
+            try {
+                let data = null;
+                const safeSlug = encodeURIComponent(slug);
+                if(String(source).startsWith('scraper:')) {
+                    const provider = String(source).slice('scraper:'.length);
+                    const hybridDetail = await hybridFetch('/api/anime/detail', {provider, slug});
+                    if(hybridDetail && hybridDetail.ok && hybridDetail.data) data = hybridDetail.data;
+                } else {
+                    const endpoints = [];
+                    if(source !== 'default') {
+                        endpoints.push(`/anime/${source}/detail/${safeSlug}`);
+                        endpoints.push(`/anime/${source}/anime/${safeSlug}`);
+                    }
+                    endpoints.push(`/anime/anime/${safeSlug}`);
+                    endpoints.push(`/anime/detail/${safeSlug}`);
+                    for(const ep of endpoints) {
+                        let res = await apiFetch(ep);
+                        if(res) {
+                            if(res.data && typeof res.data === 'object' && !Array.isArray(res.data)) res = res.data;
+                            if(res.title || res.name || res.episodeList || res.episodes || res.list) { data = res; break; }
+                        }
+                    }
+                }
+                
+                if(!data || (!data.title && !data.name)) throw new Error('Kosong');
+
+                currentDetailEps = normalizeEpisodes(data);
+                cDtlTitle = getField(data,['title','name','anime.title','anime.name'],'Untitled');
+                cDtlPoster = getImageUrl(data,'');
+                const rawScore = getField(data,['score','rating','rating.score','anime.score'],'N/A');
+                cDtlScore = (rawScore && String(rawScore)!=='0.0' && String(rawScore)!=='0' && String(rawScore)!=='?') ? rawScore : 'N/A';
+                cDtlHref = slug;
+
+                if (currentDetailEps.length > 1) {
+                    const firstStr = String(currentDetailEps[0].eps || currentDetailEps[0].title || currentDetailEps[0].episode || '');
+                    const lastStr = String(currentDetailEps[currentDetailEps.length - 1].eps || currentDetailEps[currentDetailEps.length - 1].title || currentDetailEps[currentDetailEps.length - 1].episode || '');
+                    const first = parseInt(firstStr.replace(/\D/g, '')) || 0;
+                    const last = parseInt(lastStr.replace(/\D/g, '')) || 0;
+                    if (first < last) currentDetailEps.reverse();
+                }
+
+                let epCount = getBadgeText(data, 'anime');
+                if(epCount === '?') epCount = `${currentDetailEps.length} Eps`;
+
+                const studioValue=getField(data,['studios','studio','studio.name','anime.studio','producer','author'],'-');
+                const rilisValue=getField(data,['aired','releaseDate','release','released','release_date','anime.releaseDate'],'-');
+                const durasiValue=getField(data,['duration','runtime','length','anime.duration'],'-');
+                const studioStr=Array.isArray(studioValue)?studioValue.map(x=>typeof x==='object'?(x.name||x.title||''):x).filter(Boolean).join(', '):String(studioValue);
+                const rilisStr=Array.isArray(rilisValue)?rilisValue.join(', '):String(rilisValue);
+                const durasiStr=Array.isArray(durasiValue)?durasiValue.join(', '):String(durasiValue);
+                const genres=getArrayField(data,['genreList','genres','genre','anime.genres']);
+                const genresHtml=genres.map(g=>{
+                    const gName=typeof g==='string'?g:(g.title||g.name||g.genre||'');
+                    return gName?`<span class="hm-dtl-tag"><i class="ph-bold ph-tag" style="color:var(--brand-primary);"></i> ${escapeHTML(gName)}</span>`:'';
+                }).join('');
+                const synopsisValue=getField(data,['synopsis','description','plot','summary','anime.synopsis'],'');
+                if(typeof synopsisValue==='object') {
+                    const paragraphs=synopsisValue.paragraphs||synopsisValue.content||synopsisValue.text||[];
+                    cDtlSynopsis=Array.isArray(paragraphs)?escapeHTML(paragraphs.join('\n')).replace(/\n/g,'<br>'):escapeHTML(String(paragraphs));
+                } else {
+                    cDtlSynopsis=synopsisValue?escapeHTML(String(synopsisValue)).replace(/\n/g,'<br>'):'Sinopsis belum tersedia.';
+                }
+
+                const isFav = getStorageSafe('kudo_fav').some(a => cleanSlug(a.href) === slug);
+                if(window.updateUserActivity) window.updateUserActivity("Menonton: " + cDtlTitle);
+
+                content.innerHTML = `
+                    <div class="hm-dtl-header">
+                        <div class="hm-dtl-poster-wrap">
+                            <img src="${escapeHTML(cDtlPoster)}" class="hm-dtl-poster-blur">
+                            <div style="position:absolute; inset:0; background:rgba(0, 0, 0, 0.85); z-index:1;"></div>
+                            <img src="${escapeHTML(cDtlPoster)}" class="hm-dtl-poster-main" onerror="this.src='https://placehold.co/200x300/0F1115/9182FF?text=Nest'">
+                        </div>
+                        <div class="hm-dtl-title">${escapeHTML(cDtlTitle)}</div>
+                        <div class="hm-dtl-tags">
+                            <span class="hm-dtl-tag" style="color:var(--brand-primary); background: rgba(212,175,55,0.1); border-color: var(--brand-primary);"><i class="ph-fill ph-star"></i> ${escapeHTML(cDtlScore)}</span>
+                            <span class="hm-dtl-tag">${escapeHTML(data.status || 'Ongoing')}</span>
+                            <span class="hm-dtl-tag">${escapeHTML(data.type || 'TV')}</span>
+                            <span class="hm-dtl-tag"><i class="ph-bold ph-video-camera"></i> ${escapeHTML(epCount)}</span>
+                        </div>
+                    </div>
+                    <div class="hm-dtl-action-bar">
+                        <button class="hm-btn-primary hm-interactive" onclick="${currentDetailEps.length > 0 ? 'hmPlayStreamIdx(0)' : 'showNotif(\'Episode belum tersedia\', \'<i class=\\\'ph-bold ph-warning\\\'></i>\')'}"><i class="ph-fill ph-play-circle" style="font-size:18px;"></i> Tonton Sekarang</button>
+                        <button class="hm-btn-secondary hm-interactive ${isFav ? 'active' : ''}" id="btnFavDetail" onclick="hmToggleFavorite()"><i class="ph-bold ${isFav ? 'ph-check-circle' : 'ph-plus'}"></i> ${isFav ? 'Tersimpan' : 'Tambah'}</button>
+                    </div>
+                    <div class="hm-dtl-box">
+                        <div class="hm-dtl-box-title"><i class="ph-fill ph-info"></i> Informasi & Genre</div>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">${genresHtml || '<span class="hm-dtl-tag">-</span>'}</div>
+                        <div class="hm-dtl-desc">
+                            <div style="margin-bottom:6px;"><b>Studio:</b> <span style="color:var(--brand-primary);">${escapeHTML(studioStr)}</span></div>
+                            <div style="margin-bottom:6px;"><b>Rilis:</b> <span style="color:var(--brand-primary);">${escapeHTML(rilisStr)}</span></div>
+                            <div><b>Durasi:</b> <span style="color:var(--brand-primary);">${escapeHTML(durasiStr)}</span></div>
+                        </div>
+                    </div>
+                    <div class="hm-dtl-box">
+                        <div class="hm-dtl-box-title"><i class="ph-fill ph-book-open"></i> Sinopsis</div>
+                        <div class="hm-dtl-desc">${cDtlSynopsis}</div>
+                    </div>
+                    <div class="hm-dtl-box" style="margin-bottom: 30px;">
+                        <div class="hm-dtl-box-title"><i class="ph-fill ph-chats"></i> Ulasan & Rating</div>
+                        <div id="reviewContainer" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px; padding-right: 4px;">
+                            <div class="skeleton" style="width:100%; height:40px;"></div>
+                        </div>
+                        <div style="display: flex; gap: 8px; margin-bottom: 12px; font-size: 24px; color: var(--text-muted);" id="ratingStars">
+                            <i class="ph-bold ph-star hm-interactive" id="star_1" onclick="setRating(1)"></i>
+                            <i class="ph-bold ph-star hm-interactive" id="star_2" onclick="setRating(2)"></i>
+                            <i class="ph-bold ph-star hm-interactive" id="star_3" onclick="setRating(3)"></i>
+                            <i class="ph-bold ph-star hm-interactive" id="star_4" onclick="setRating(4)"></i>
+                            <i class="ph-bold ph-star hm-interactive" id="star_5" onclick="setRating(5)"></i>
+                        </div>
+                        <textarea id="reviewText" style="width:100%; background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); border-radius:12px; padding:12px; font-size:13px; font-weight:500; min-height:60px;" placeholder="Tulis ulasanmu..."></textarea>
+                        <button class="hm-btn-primary hm-interactive" onclick="submitReview()" style="width:100%; margin-top:12px; font-size: 13px;"><i class="ph-bold ph-paper-plane-right"></i> Kirim Ulasan</button>
+                    </div>
+                    <div class="hm-section-header">
+                        <div class="hm-section-title">Pilih Episode</div>
+                        <div class="hm-section-more" style="background:var(--card-bg); border:1px solid var(--glass-border);">${currentDetailEps.length} Eps</div>
+                    </div>
+                    <div class="hm-ep-grid" id="detailEpList"></div>
+                `;
+                renderStreamEpsList(false, -1, 'detailEpList');
+
+                if(currentReviewRef) currentReviewRef.off();
+                const safeKey = slug.replace(/[^a-zA-Z0-9_-]/g, '_');
+                if(db) {
+                    currentReviewRef = db.ref('Anime/reviews/' + safeKey);
+                    currentReviewRef.on('value', snap => {
+                        let reviews = [];
+                        snap.forEach(ch => { reviews.push(ch.val()); });
+                        reviews.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                        renderReviewsHTML(reviews);
+                    });
+                } else {
+                    renderReviewsHTML([]);
+                }
+                hideNotif();
+            } catch(err) {
+                showNotif('Gagal memuat', '<i class="ph-bold ph-warning"></i>');
+                content.innerHTML = `<div class="hm-empty">Gagal memuat detail anime.<br><br><button class="hm-btn-primary hm-interactive" style="margin:20px auto 0;" onclick="hmLoadDetail(decodeURIComponent('${makeSafe(slug)}'), decodeURIComponent('${makeSafe(source)}'))">Coba Lagi</button></div>`;
+            }
+        }
+
+        window.renderStreamEpsList = function(showAll = false, activeIdx = -1, targetContainer = 'hmStreamEpsList') {
+            const limit = showAll ? currentDetailEps.length : 24;
+            const historyList = getStorageSafe('hm_read_history');
+            
+            const listToRender = currentDetailEps.slice(0, limit);
+            const html = listToRender.map((e, i) => {
+                const epSlug = cleanSlug(e.href || e.slug || e.url || e.id || e);
+                const isCurrent = i === activeIdx;
+                const isRead = historyList.includes(epSlug) || isCurrent;
+                
+                let titleObj = e.title || e.eps || e.episode || e.name || '';
+                if(typeof titleObj === 'object') titleObj = '';
+                const match = String(titleObj).match(/\d+(\.\d+)?/);
+                let numDisplay = match ? match[0] : String(currentDetailEps.length - i);
+
+                const stateClass = isCurrent ? 'ep-active' : (isRead ? 'ep-read' : 'ep-unread');
+                return `<button class="hm-ep-box hm-interactive ${stateClass}" onclick="hmPlayStreamIdx(${i})">${escapeHTML(numDisplay)}</button>`;
+            }).join('');
+            
+            let finalHtml = html;
+            if(!showAll && currentDetailEps.length > 24) {
+                finalHtml += `<button class="hm-btn-secondary hm-interactive" style="grid-column:1/-1; margin-top:8px;" onclick="renderStreamEpsList(true, ${activeIdx}, '${targetContainer}')"><i class="ph-bold ph-caret-down"></i> Tampilkan Semua (${currentDetailEps.length}) Episode</button>`;
+            }
+            document.getElementById(targetContainer).innerHTML = finalHtml;
+        };
+
+        async function hmPlayStreamIdx(index) {
+            if(index < 0 || index >= currentDetailEps.length) return;
+            currentChapterIdx = index;
+            const ep = currentDetailEps[index];
+            const epSlug = cleanSlug(ep.href || ep.slug || ep.url || ep.id || ep);
+            
+            hmNavTo('stream');
+            hmSaveHistory();
+            
+            let readHist = getStorageSafe('hm_read_history');
+            if(!readHist.includes(epSlug)) {
+                readHist.push(epSlug);
+                saveStorageSafe('hm_read_history', readHist);
+            }
+
+            document.getElementById('hmStreamTitle').innerText = cDtlTitle;
+            let epTitle = ep.title || ep.episode || ep.name;
+            if(!epTitle || typeof epTitle === 'object') epTitle = `Episode ${ep.eps || (index + 1)}`;
+            document.getElementById('hmStreamCredit').innerHTML = `<b>${escapeHTML(epTitle)}</b>`;
+            document.getElementById('hmStreamSynopsis').innerHTML = cDtlSynopsis;
+            document.getElementById('btnPrevEp').style.display = index < currentDetailEps.length - 1 ? 'flex' : 'none';
+            document.getElementById('btnNextEp').style.display = index > 0 ? 'flex' : 'none';
+            
+            document.getElementById('hmStreamServersContainer').innerHTML = '<div class="skeleton" style="height:44px; border-radius:10px; margin-bottom:16px;"></div>';
+            document.getElementById('hmStreamIframe').src = '';
+            document.getElementById('hmStreamBlocker').style.display = 'flex';
+            renderStreamEpsList(false, index, 'hmStreamEpsList');
+            
+            showNotif('Mengambil video...');
+            
+            if(String(cDtlSource).startsWith('scraper:')) {
+                const provider = String(cDtlSource).slice('scraper:'.length);
+                const epNumber = ep.episode || ep.eps || ep.number || (index + 1);
+                const sourceSlug = provider === 'animeindo' ? (ep.url || ep.href || epSlug) : cDtlHref;
+                const hybridEpisode = await hybridFetch('/api/anime/episode', {provider, slug:sourceSlug, episode:epNumber});
+                if(hybridEpisode && hybridEpisode.ok && hybridEpisode.defaultStreamingUrl) {
+                    document.getElementById('hmStreamServersContainer').innerHTML = '<div class="hm-server-label" style="text-align:center">Sumber video tersedia</div>';
+                    pendingIframeUrl = hybridEpisode.defaultStreamingUrl;
+                    playIframe();
+                } else {
+                    document.getElementById('hmStreamServersContainer').innerHTML = '<div class="hm-empty">Sumber video belum tersedia. Coba episode atau sumber lain.</div>';
+                }
+                hideNotif();
+                return;
+            }
+            let data = null;
+            if(cDtlSource !== 'default') {
+                data = await apiFetch(`/anime/${cDtlSource}/episode/${encodeURIComponent(epSlug)}`);
+            }
+            if(!data) {
+                data = await apiFetch(`/anime/episode/${encodeURIComponent(epSlug)}`);
+            }
+            
+            if(data) {
+                if(data.data && typeof data.data === 'object') data = data.data;
+
+                let servers = [];
+                if(data.server && data.server.qualities) {
+                    data.server.qualities.forEach(q => {
+                        (q.serverList || []).forEach(s => {
+                            servers.push({ id: s.serverId, name: `${q.title} - ${s.title}`, quality: q.title });
+                        });
+                    });
+                }
+                
+                if(servers.length > 0) {
+                    const serverGroups = {};
+                    servers.forEach(s => {
+                        if(!serverGroups[s.quality]) serverGroups[s.quality] = [];
+                        serverGroups[s.quality].push(s);
+                    });
+
+                    let serverHtml = '';
+                    Object.entries(serverGroups).forEach(([quality, list]) => {
+                        serverHtml += `
+                        <div class="hm-server-group">
+                            <div class="hm-server-label"><i class="ph-bold ph-monitor-play" style="color:var(--brand-primary); font-size:14px;"></i> Kualitas ${escapeHTML(quality)}</div>
+                            <div class="hm-server-scroll">
+                                ${list.map((s, idx) => `<button class="hm-server-btn hm-interactive" id="srvBtn_${s.id}" onclick="hmSwitchServer('${s.id}')"><i class="ph-bold ph-hard-drives"></i> Server ${idx + 1}</button>`).join('')}
+                            </div>
+                        </div>`;
+                    });
+                    document.getElementById('hmStreamServersContainer').innerHTML = serverHtml;
+                    hmSwitchServer(servers[0].id, false);
+                } else if(data.defaultStreamingUrl) {
+                    document.getElementById('hmStreamServersContainer').innerHTML = '<div class="hm-server-label" style="text-align:center">Memutar Default Player</div>';
+                    pendingIframeUrl = data.defaultStreamingUrl;
+                    playIframe();
+                } else {
+                    document.getElementById('hmStreamServersContainer').innerHTML = '<div class="hm-empty">Streaming tidak ditemukan.</div>';
+                }
+            } else {
+                document.getElementById('hmStreamServersContainer').innerHTML = '<div class="hm-empty">Gagal memuat server video.</div>';
+            }
+            hideNotif();
+        }
+
+        async function hmSwitchServer(serverId, autoPlay = true) {
+            document.querySelectorAll('.hm-server-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById(`srvBtn_${serverId}`);
+            if(btn) btn.classList.add('active');
+
+            if(autoPlay) showNotif('Menghubungkan server...');
+            
+            let data = null;
+            if(cDtlSource !== 'default') data = await apiFetch(`/anime/${cDtlSource}/server/${encodeURIComponent(serverId)}`);
+            if(!data) data = await apiFetch(`/anime/server/${encodeURIComponent(serverId)}`);
+            
+            if(data) {
+                if(data.data && typeof data.data === 'object') data = data.data;
+                if (data.url || data.streamUrl) {
+                    pendingIframeUrl = data.url || data.streamUrl;
+                    if(autoPlay) playIframe();
+                } else if(autoPlay) {
+                    showNotif('Server tidak merespons', '<i class="ph-bold ph-warning"></i>');
+                }
+            } else if(autoPlay) {
+                showNotif('Server gagal', '<i class="ph-bold ph-warning"></i>');
+            }
+            if(autoPlay) hideNotif();
+        }
+
+        function playIframe() {
+            document.getElementById('hmStreamBlocker').style.display = 'none';
+            if(pendingIframeUrl) {
+                let url = pendingIframeUrl;
+                if(url.includes('<iframe')) {
+                    const match = url.match(/src=["'](.*?)["']/);
+                    if(match) url = match[1];
+                }
+                if(url.startsWith('//')) url = 'https:' + url;
+                if(url.startsWith('http://')) url = url.replace('http://', 'https://');
+                document.getElementById('hmStreamIframe').src = url;
+            }
+        }
+
+        function hmToggleFullscreen() {
+            const el = document.getElementById('hmStreamPlayerBox');
+            if(!document.fullscreenElement && !document.webkitFullscreenElement) {
+                if(el.requestFullscreen) el.requestFullscreen().catch(() => {});
+                else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            } else {
+                if(document.exitFullscreen) document.exitFullscreen();
+                else if(document.webkitExitFullscreen) document.webkitExitFullscreen();
+            }
+        }
+
+        function hmSaveHistory() {
+            let hist = getStorageSafe('kudo_hist').filter(a => cleanSlug(a.href) !== cleanSlug(cDtlHref));
+            hist.unshift({ title: cDtlTitle, poster: cDtlPoster, score: cDtlScore, href: cDtlHref, _source: cDtlSource, time: Date.now() });
+            saveStorageSafe('kudo_hist', hist.slice(0, 50));
+        }
+
+        function hmToggleFavorite() {
+            let favs = getStorageSafe('kudo_fav');
+            const exists = favs.some(a => cleanSlug(a.href) === cleanSlug(cDtlHref));
+            if(exists) {
+                favs = favs.filter(a => cleanSlug(a.href) !== cleanSlug(cDtlHref));
+                showNotif('Dihapus dari Watchlist', '<i class="ph-bold ph-trash"></i>');
+            } else {
+                favs.unshift({ title: cDtlTitle, poster: cDtlPoster, score: cDtlScore, href: cDtlHref, _source: cDtlSource, time: Date.now() });
+                showNotif('Tersimpan di Watchlist', '<i class="ph-bold ph-check"></i>');
+            }
+            saveStorageSafe('kudo_fav', favs);
+            const btn = document.getElementById('btnFavDetail');
+            if(btn) {
+                btn.classList.toggle('active', !exists);
+                btn.innerHTML = !exists ? '<i class="ph-fill ph-check-circle"></i> Tersimpan' : '<i class="ph-bold ph-plus"></i> Tambah';
+            }
+        }
+
+        window.hmToggleSyn = function() {
+            const synEl = document.getElementById('hmStreamSynopsis');
+            const btn = document.getElementById('btnMoreSyn');
+            if(synEl.style.webkitLineClamp === 'unset') {
+                synEl.style.webkitLineClamp = '2';
+                btn.innerText = 'Selengkapnya';
+            } else {
+                synEl.style.webkitLineClamp = 'unset';
+                btn.innerText = 'Sembunyikan';
+            }
+        };
+
+        window.hmNavNext = () => { if(currentChapterIdx > 0) hmPlayStreamIdx(currentChapterIdx - 1); };
+        window.hmNavPrev = () => { if(currentChapterIdx < currentDetailEps.length - 1) hmPlayStreamIdx(currentChapterIdx + 1); };
+
+        function comicCard(o, source = 'default') {
+            o = o && typeof o === 'object' ? o : {};
+            const actualSource = o._source || source || 'default';
+            const s = o._slug || getItemIdentity(o);
+            if(!s) return '';
+            const t = escapeHTML(o.title || o.name || o.manga_name || 'Untitled');
+            const im = escapeHTML(getImageUrl(o, 'https://placehold.co/200x300/0F1115/9182FF?text=NestComic'));
+            let ch = o.last_chapter_title || o.latest_chapter || o.chapter || o.lastChapter || '';
+            if(typeof ch === 'object') ch = ch.title || ch.name || ch.chapter || '';
+            if(ch) {
+                const match = String(ch).match(/\d+(?:\.\d+)?/);
+                ch = match ? 'Ch ' + match[0] : String(ch);
+            } else ch = getBadgeText(o, 'comic');
+            const sc = escapeHTML(String(o.rating ?? o.score ?? '—'));
+            let tp = String(o.type || o.format || 'Comic');
+            if(tp.toLowerCase().includes('mirror') || tp.toLowerCase().includes('update') || tp.length > 12) tp = 'Comic';
+            return `<article class="hm-anime-card hm-interactive" onclick="openComicDetail(decodeURIComponent('${makeSafe(s)}'), decodeURIComponent('${makeSafe(actualSource)}'))">
+                <div class="hm-ac-thumb-wrap"><img class="hm-ac-img" loading="lazy" src="${im}" onerror="this.src='https://placehold.co/200x300/0F1115/9182FF?text=NestComic'"><span class="hm-ac-score">${sc}</span><span class="hm-ac-ep">${escapeHTML(tp)}</span></div>
+                <div class="hm-ac-title">${t}</div><div style="font-size:9px;color:var(--text-muted);text-align:center;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">${escapeHTML(ch)}</div>
+            </article>`;
+        }
+
+        async function loadComicHome(kind = 'latest', el = null) {
+            if(el) {
+                document.querySelectorAll('#hmViewManhwaHome .hm-jadwal-tab').forEach(x => x.classList.remove('active'));
+                el.classList.add('active');
+            }
+            activeComicFilter = kind;
+            currentPage.manhwa = 3;
+            const grid = document.getElementById('hmComicGrid');
+            grid.innerHTML = '<div class="hm-empty"><i class="ph-bold ph-spinner ph-spin" style="font-size:24px;color:var(--brand-primary)"></i><br><br>Memuat komik...</div>';
+
+            const cSources = (CONFIG_SISTEM.comic_sources || []).sort(() => 0.5 - Math.random()).slice(0, 2);
+            let promises = [];
+            cSources.forEach(src => {
+                for(let p=1; p<=3; p++) {
+                    if(kind === 'popular') promises.push(apiFetch(`/comic/${src}/popular`, {page: p, limit: 20}).then(res => extractListWithSource(res, src)));
+                    else if(kind === 'random') promises.push(apiFetch(`/comic/${src}/random`).then(res => extractListWithSource(res, src)));
+                    else if(kind === 'recommend') promises.push(apiFetch(`/comic/${src}/recommendations`).then(res => extractListWithSource(res, src)));
+                    else promises.push(apiFetch(`/comic/${src}/latest`, {page: p, limit: 20}).then(res => extractListWithSource(res, src)));
+                }
+            });
+
+            if(kind === 'popular') promises.push(apiFetch('/comic/populer', { page: 1, limit: 20 }).then(res => extractListWithSource(res, 'default')));
+            else if(kind === 'random') promises.push(apiFetch('/comic/random').then(res => extractListWithSource(res, 'default')));
+            else if(kind === 'recommend') promises.push(apiFetch('/comic/recommendations').then(res => extractListWithSource(res, 'default')));
+            else promises.push(apiFetch('/comic/terbaru', { page: 1, limit: 20 }).then(res => extractListWithSource(res, 'default')));
+
+            const results = await Promise.allSettled(promises);
+            let list = mergeAndShuffle(results.map(r => r.status === 'fulfilled' ? r.value : []));
+
+            if (list.length === 0) {
+                const fallbackRes = await apiFetch('/comic/terbaru', { page: Math.floor(Math.random() * 3) + 1, limit: 20 });
+                list = mergeAndShuffle([extractListWithSource(extractList(fallbackRes, ['comics', 'results', 'items', 'komikList', 'data', 'comicList', 'list']), 'default')]);
+            }
+
+            grid.innerHTML = list.length ? list.slice(0,24).map(c => comicCard(c, c._source)).join('') + `<button class="hm-load-more hm-interactive" onclick="loadMoreGrid('manhwa', this)">Load More <i class="ph-bold ph-caret-down"></i></button>` : '<div class="hm-empty">Koneksi terputus. Gagal memuat data.</div>';
+            grid.dataset.loaded = '1';
+        }
+
+        window.hmDoComicFilter = function(kind, el) {
+            currentPage.manhwa = 0;
+            loadComicHome(kind, el);
+        };
+
+        async function comicSearch(query) {
+            const q = query.trim();
+            if(!q) return;
+            const grid = document.getElementById('hmComicGrid');
+            grid.innerHTML = '<div class="hm-empty"><i class="ph-bold ph-spinner ph-spin" style="font-size:24px;color:var(--brand-primary)"></i><br><br>Mencari komik...</div>';
+            const res = await apiFetch('/comic/search', { q, page: 1, limit: 24 });
+            const list = extractListWithSource(extractList(res, ['comics', 'results', 'items', 'komikList', 'data', 'comicList', 'list']), 'default');
+            grid.innerHTML = list.length ? list.map(c => comicCard(c, c._source)).join('') : '<div class="hm-empty">Tidak ada komik yang sesuai.</div>';
+        }
+
+        window.setComicRating = function(val) {
+            comicRating = val;
+            for(let i=1; i<=5; i++) {
+                const star = document.getElementById('comicStar_'+i);
+                if(!star) continue;
+                star.classList.toggle('ph-fill', i<=val);
+                star.classList.toggle('ph-bold', i>val);
+                star.style.color = i<=val ? '#9182FF' : 'var(--text-muted)';
+            }
+        };
+
+        window.submitComicReview = async function() {
+            if(!comicCurrentSlug) return showNotif('Data belum siap', '<i class="ph-bold ph-warning"></i>');
+            const text = document.getElementById('comicReviewText')?.value.trim();
+            if(!comicRating || !text) return showNotif('Beri rating & ulasan', '<i class="ph-bold ph-warning"></i>');
+            if(!db) return showNotif('Koneksi database gagal', '<i class="ph-bold ph-warning"></i>');
+
+            showNotif('Mengirim ulasan...');
+            const safeKey = cleanSlug(comicCurrentSlug).replace(/[^a-zA-Z0-9_-]/g, '_');
+            try {
+                await db.ref(`Manhwa/reviews/${safeKey}`).push({
+                    userId: getUserId(),
+                    rating: comicRating,
+                    text: text,
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
+                document.getElementById('comicReviewText').value = '';
+                setComicRating(0);
+                showNotif('Ulasan terkirim!', '<i class="ph-bold ph-check"></i>');
+            } catch(err) {
+                showNotif('Gagal mengirim ulasan', '<i class="ph-bold ph-warning"></i>');
+            }
+        };
+
+        window.renderComicReviews = function(reviews) {
+            const container = document.getElementById('comicReviewContainer');
+            if(!container) return;
+            if(!reviews.length) {
+                container.innerHTML = '<div style="text-align:center; padding:20px 10px; opacity:0.5; font-weight:600;">Belum ada ulasan. Jadilah yang pertama!</div>';
+                return;
+            }
+            container.innerHTML = reviews.map(r => `
+                <div style="background:rgba(255,255,255,0.03); padding:14px; border-radius:12px; margin-bottom:10px; border: 1px solid var(--glass-border);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="color:#9182FF; font-weight:800; font-size:12px;"><i class="ph-fill ph-star"></i> ${r.rating || 0}/5</span>
+                            <span style="font-weight:800; font-size:11px; color:var(--text-muted);">${escapeHTML(r.userId || 'User')}</span>
+                        </div>
+                        <span style="opacity:0.4; font-size:10px; font-weight:600;">${r.timestamp ? new Date(r.timestamp).toLocaleDateString('id-ID') : ''}</span>
+                    </div>
+                    <div style="line-height:1.5; font-weight:500; font-size:12px;">${escapeHTML(r.text || '')}</div>
+                </div>
+            `).join('');
+        }
+
+        function comicReviewPath(slug) {
+            return (CONFIG_SISTEM.firebasePaths?.manhwaReviews || 'Manhwa/reviews') + '/' + String(slug).replace(/[^a-zA-Z0-9_-]/g, '_');
+        }
+
+        async function openComicDetail(rawSlug, source = 'default') {
+            const slug = cleanSlug(rawSlug);
+            if(!slug) return;
+            comicCurrentSlug = slug;
+            comicCurrentSource = source;
+            hmNavTo('manhwaDetail');
+            
+            const c = document.getElementById('hmComicDetailContent');
+            c.innerHTML = `<div class="skeleton" style="width:100%;aspect-ratio:16/10;border-radius:var(--radius-xl)"></div><div class="skeleton" style="width:60%;height:20px;margin:20px auto"></div>`;
+            showNotif('Memuat Manhwa...');
+
+            let d = null;
+            const safeSlug = encodeURIComponent(slug);
+            const endpoints=[
+                source!=='default'?`/comic/${source}/comic/${safeSlug}`:'',
+                source!=='default'?`/comic/${source}/detail/${safeSlug}`:'',
+                source!=='default'?`/comic/${source}/manga/${safeSlug}`:'',
+                `/comic/comic/${safeSlug}`,
+                `/comic/detail/${safeSlug}`,
+                `/comic/manga/${safeSlug}`,
+                `/comic/komik/${safeSlug}`
+            ].filter(Boolean);
+
+            for(const ep of endpoints) {
+                let res = await apiFetch(ep);
+                if(res) {
+                    if(res.data && typeof res.data === 'object' && !Array.isArray(res.data)) res = res.data;
+                    if(res.detail && typeof res.detail === 'object') res = res.detail;
+                    if(res.comic && typeof res.comic === 'object') res = res.comic;
+                    if(res.title || res.name || res.chapters || res.chapter_list || res.chapterList || res.list) {
+                        d = res;
+                        break;
+                    }
+                }
+            }
+
+            if(!d || (!d.title && !d.name)) {
+                c.innerHTML = `<div class="hm-empty">Gagal memuat detail komik.<br><br><button class="hm-btn-primary hm-interactive" style="margin:20px auto 0;" onclick="openComicDetail(decodeURIComponent('${makeSafe(slug)}'), decodeURIComponent('${makeSafe(source)}'))">Coba Lagi</button></div>`;
+                hideNotif();
+                return;
+            }
+
+            comicDetailData = d;
+            comicCurrentTitle = d.title || d.name || 'Untitled';
+            comicCurrentCover = d.cover_portrait || d.cover || d.thumbnail || d.thumb || d.image || d.poster || '';
+            
+            const finalChapters=normalizeChapters(d);
+            
+            const savedHist = getStorageSafe('nest_comic_history');
+            const existingHist = savedHist.find(x => cleanSlug(x.slug) === slug);
+            let hist = savedHist.filter(x => cleanSlug(x.slug) !== slug);
+            
+            hist.unshift({ 
+                slug, 
+                title: comicCurrentTitle, 
+                cover: comicCurrentCover, 
+                _source: source, 
+                last_chapter: existingHist ? existingHist.last_chapter : '',
+                last_chapter_title: existingHist ? existingHist.last_chapter_title : '',
+                time: Date.now() 
+            });
+            saveStorageSafe('nest_comic_history', hist.slice(0, 50));
+
+            let btnReadAction = '';
+            if(finalChapters.length > 0) {
+                const firstCh = finalChapters[0];
+                btnReadAction = typeof firstCh === 'object' ? getItemIdentity(firstCh) : cleanSlug(firstCh);
+            }
+            let btnReadLabel = "Baca Sekarang";
+            
+            if(existingHist && existingHist.last_chapter) {
+                btnReadAction = existingHist.last_chapter;
+                const match = String(existingHist.last_chapter_title).match(/\d+(\.\d+)?/);
+                btnReadLabel = match ? "Lanjut Ch " + match[0] : "Lanjutkan Baca";
+            }
+
+            const saved = getStorageSafe('nest_comic_watchlist').some(x => cleanSlug(x.slug) === slug);
+            let desc = d.description || d.synopsis || 'Sinopsis belum tersedia.';
+            if(typeof desc === 'object' && desc.paragraphs) desc = desc.paragraphs.join('\n');
+
+            if(window.updateUserActivity) window.updateUserActivity("Membaca: " + comicCurrentTitle);
+
+            let badgeLabel = getBadgeText(d, 'comic');
+            if(badgeLabel === '?') badgeLabel = `${finalChapters.length} Ch`;
+
+            let ratingText = d.rating || d.score || 'N/A';
+            if (ratingText === '0' || ratingText === '0.0') ratingText = 'N/A';
+
+            c.innerHTML = `
+                <div class="hm-dtl-header">
+                    <div class="hm-dtl-poster-wrap">
+                        <img src="${escapeHTML(comicCurrentCover)}" class="hm-dtl-poster-blur">
+                        <div style="position:absolute;inset:0;background:rgba(0,0,0,.85);z-index:1"></div>
+                        <img src="${escapeHTML(comicCurrentCover)}" class="hm-dtl-poster-main" onerror="this.src='https://placehold.co/200x300/030303/9182FF?text=NestComic'">
+                    </div>
+                    <div class="hm-dtl-title">${escapeHTML(comicCurrentTitle)}</div>
+                    <div class="hm-dtl-tags">
+                        <span class="hm-dtl-tag" style="color:var(--brand-primary); background: rgba(212,175,55,0.1); border-color: var(--brand-primary);"><i class="ph-fill ph-star"></i> ${escapeHTML(ratingText)}</span>
+                        <span class="hm-dtl-tag">${escapeHTML(d.type || d.format || 'Comic')}</span>
+                        <span class="hm-dtl-tag">${escapeHTML(d.status || 'Ongoing')}</span>
+                    </div>
+                </div>
+                <div class="hm-dtl-action-bar">
+                    ${btnReadAction !== '' ? `<button class="hm-btn-primary hm-interactive" onclick="openComicChapter(decodeURIComponent('${makeSafe(btnReadAction)}'), decodeURIComponent('${makeSafe(source)}'))"><i class="ph-fill ph-book-open" style="font-size:18px;"></i> ${escapeHTML(btnReadLabel)}</button>` : `<button class="hm-btn-primary hm-interactive" style="opacity:0.5"><i class="ph-fill ph-book-open" style="font-size:18px;"></i> Belum Tersedia</button>`}
+                    <button class="hm-btn-secondary hm-interactive ${saved ? 'active' : ''}" id="comicFavBtn" onclick="toggleComicWatchlist()"><i class="ph-bold ${saved ? 'ph-check-circle' : 'ph-plus'}"></i> ${saved ? 'Tersimpan' : 'Tambah'}</button>
+                </div>
+                <div class="hm-dtl-box">
+                    <div class="hm-dtl-box-title"><i class="ph-fill ph-info"></i> Sinopsis</div>
+                    <div class="hm-dtl-desc">${escapeHTML(desc).replace(/\n/g, '<br>')}</div>
+                </div>
+                <div class="hm-dtl-box" style="margin-bottom: 30px;">
+                    <div class="hm-dtl-box-title"><i class="ph-fill ph-chats"></i> Komentar & Ulasan</div>
+                    <div id="comicReviewContainer" style="max-height:200px;overflow-y:auto;margin-bottom:16px;padding-right:4px;">
+                        <div class="skeleton" style="height:40px"></div>
+                    </div>
+                    <div style="display:flex;gap:8px;margin-bottom:12px;font-size:24px;color:var(--text-muted);" id="comicRatingStars">
+                        ${[1,2,3,4,5].map(i=>`<i class="ph-bold ph-star hm-interactive" id="comicStar_${i}" onclick="setComicRating(${i})"></i>`).join('')}
+                    </div>
+                    <textarea id="comicReviewText" style="width:100%;background:rgba(0,0,0,.4);border:1px solid var(--glass-border);border-radius:12px;padding:12px;font-size:13px;font-weight:500;min-height:60px;" placeholder="Tulis komentar atau ulasanmu..."></textarea>
+                    <button class="hm-btn-primary hm-interactive" onclick="submitComicReview()" style="width:100%;margin-top:12px;font-size:13px;"><i class="ph-bold ph-paper-plane-right"></i> Kirim Ulasan</button>
+                </div>
+                <div class="hm-section-header">
+                    <div class="hm-section-title">Daftar Chapter</div>
+                    <div class="hm-section-more" style="background:var(--card-bg); border:1px solid var(--glass-border);">${finalChapters.length} Chapter</div>
+                </div>
+                <div class="hm-comic-chapters">
+                    ${finalChapters.map(ch => {
+                        const isObj = typeof ch === 'object';
+                        const chSlug = isObj ? getItemIdentity(ch) : cleanSlug(ch);
+                        let label = isObj ? (ch.chapter || ch.title || ch.name) : chSlug;
+                        if(!label || typeof label === 'object') {
+                            const match = chSlug.match(/chapter-?(\d+(\.\d+)?)/i) || chSlug.match(/ch-?(\d+(\.\d+)?)/i) || chSlug.match(/episode-?(\d+(\.\d+)?)/i);
+                            label = match ? 'Chapter ' + match[1] : chSlug.replace(/-/g, ' ');
+                        }
+                        return `<button class="hm-comic-chapter hm-interactive" onclick="openComicChapter(decodeURIComponent('${makeSafe(chSlug)}'), decodeURIComponent('${makeSafe(source)}'))">${escapeHTML(label)}</button>`;
+                    }).join('')}
+                </div>
+            `;
+            
+            if(comicReviewRef) comicReviewRef.off();
+            if(db) {
+                comicReviewRef = db.ref(comicReviewPath(slug));
+                comicReviewRef.on('value', snap => {
+                    const a = [];
+                    snap.forEach(ch => a.push(ch.val()));
+                    a.sort((x, y) => (y.timestamp || 0) - (x.timestamp || 0));
+                    renderComicReviews(a);
+                });
+            } else {
+                renderComicReviews([]);
+            }
+
+            hideNotif();
+        }
+
+        async function openComicChapter(rawSegment, source = comicCurrentSource) {
+            const segment = cleanSlug(rawSegment);
+            if(!segment || segment === 'undefined') return;
+            comicCurrentChapter = segment;
+            comicCurrentSource = source || comicCurrentSource || 'default';
+            hmNavTo('manhwaReader');
+
+            const c = document.getElementById('hmComicReaderContent');
+            c.innerHTML = '<div class="hm-empty"><i class="ph-bold ph-spinner ph-spin" style="font-size:30px;color:var(--brand-primary)"></i><br><br>Menyiapkan gambar...</div>';
+            showNotif('Memuat halaman komik...');
+
+            let d = null;
+            const safeSegment = encodeURIComponent(segment);
+            const endpoints=[
+                comicCurrentSource!=='default'?`/comic/${comicCurrentSource}/chapter/${safeSegment}`:'',
+                comicCurrentSource!=='default'?`/comic/${comicCurrentSource}/read/${safeSegment}`:'',
+                `/comic/chapter/${safeSegment}`
+            ].filter(Boolean);
+
+            for (const ep of endpoints) {
+                d = await apiFetch(ep);
+                if (d && (d.images || d.pages || d.list || d.imagesproxy)) break;
+            }
+
+            if(!d) {
+                c.innerHTML = `<div class="hm-empty">Gagal memuat chapter.<br><br><button class="hm-btn-primary hm-interactive" style="margin:20px auto 0;" onclick="openComicChapter(decodeURIComponent('${makeSafe(segment)}'))">Coba Lagi</button></div>`;
+                hideNotif();
+                return;
+            }
+
+            if(d.data && typeof d.data === 'object' && !Array.isArray(d.data)) d = d.data;
+
+            const imgs = extractList(d.imagesproxy || d.images || d.pages || d.list || [], []);
+            comicChapterNav = d.navigation || {};
+
+            let prev = comicChapterNav.previousChapter ? cleanSlug(comicChapterNav.previousChapter) : '';
+            let next = comicChapterNav.nextChapter ? cleanSlug(comicChapterNav.nextChapter) : '';
+
+            if(!next && !prev && comicDetailData) {
+                const dtlChapters=normalizeChapters(comicDetailData);
+                
+                const idx = dtlChapters.findIndex(x => typeof x === 'object' ? getItemIdentity(x) : cleanSlug(x) === segment);
+                if(idx !== -1) {
+                    if(idx > 0) next = typeof dtlChapters[idx - 1] === 'object' ? getItemIdentity(dtlChapters[idx - 1]) : cleanSlug(dtlChapters[idx - 1]);
+                    if(idx < dtlChapters.length - 1) prev = typeof dtlChapters[idx + 1] === 'object' ? getItemIdentity(dtlChapters[idx + 1]) : cleanSlug(dtlChapters[idx + 1]);
+                }
+            }
+
+            let titleObj = d.chapter_title || d.title || segment;
+            if(typeof titleObj === 'object') titleObj = segment;
+
+            let hist = getStorageSafe('nest_comic_history');
+            let existingHist = hist.find(x => cleanSlug(x.slug) === comicCurrentSlug);
+            hist = hist.filter(x => cleanSlug(x.slug) !== comicCurrentSlug);
+
+            hist.unshift({
+                slug: comicCurrentSlug,
+                title: comicCurrentTitle || (existingHist ? existingHist.title : 'Untitled'),
+                cover: comicCurrentCover || (existingHist ? existingHist.cover : ''),
+                _source: comicCurrentSource || (existingHist ? existingHist._source : 'default'),
+                last_chapter: segment,
+                last_chapter_title: titleObj,
+                time: Date.now()
+            });
+            saveStorageSafe('nest_comic_history', hist.slice(0, 50));
+
+            c.innerHTML = `
+                <div class="hm-reader-toolbar">
+                    <button class="hm-btn-secondary hm-interactive" style="padding: 8px 12px; font-size: 11px;" onclick="openComicDetail(decodeURIComponent('${makeSafe(comicCurrentSlug)}'), decodeURIComponent('${makeSafe(comicCurrentSource)}'))"><i class="ph-bold ph-arrow-left"></i> Detail</button>
+                    <div style="font-size:12px;font-weight:800;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHTML(titleObj)}</div>
+                    <button class="hm-btn-secondary hm-eye-btn hm-interactive" style="padding: 8px 12px; font-size: 11px;" id="comicEyeBtn" onclick="toggleComicEye()"><i class="ph-bold ph-eye"></i> Eye</button>
+                </div>
+                <div class="hm-comic-reader">
+                    ${imgs.map(img => {
+                        const imgSrc = typeof img === 'object' ? (img.url || img.src) : img;
+                        return `<img class="hm-comic-page" loading="lazy" src="${escapeHTML(imgSrc)}" onerror="this.style.display='none'">`;
+                    }).join('')}
+                </div>
+                <div class="hm-reader-nav" style="justify-content:center; margin-top:20px;">
+                    ${prev ? `<button class="hm-btn-secondary hm-interactive" onclick="openComicChapter(decodeURIComponent('${makeSafe(prev)}'))"><i class="ph-bold ph-caret-left"></i> Prev</button>` : ''}
+                    ${next ? `<button class="hm-btn-primary hm-interactive" onclick="openComicChapter(decodeURIComponent('${makeSafe(next)}'))">Next <i class="ph-bold ph-caret-right"></i></button>` : ''}
+                </div>
+                
+                <div class="hm-reader-float">
+                    <button class="hm-interactive icon-only" onclick="openComicDetail(decodeURIComponent('${makeSafe(comicCurrentSlug)}'), decodeURIComponent('${makeSafe(comicCurrentSource)}'))"><i class="ph-bold ph-arrow-left"></i></button>
+                    <button class="hm-interactive icon-only" onclick="openComicChapter(decodeURIComponent('${makeSafe(prev)}'))" ${!prev?'disabled':''}><i class="ph-bold ph-caret-left"></i></button>
+                    <button class="hm-interactive icon-only" onclick="toggleComicEye()" style="color:var(--brand-primary)"><i class="ph-fill ph-eye-slash"></i></button>
+                    <button class="hm-interactive icon-only" onclick="openComicChapter(decodeURIComponent('${makeSafe(next)}'))" ${!next?'disabled':''}><i class="ph-bold ph-caret-right"></i></button>
+                </div>
+            `;
+            hideNotif();
+        }
+
+        function toggleComicEye() {
+            document.body.classList.toggle('hm-eye-mode');
+            const btn = document.getElementById('comicEyeBtn');
+            if(btn) btn.classList.toggle('active', document.body.classList.contains('hm-eye-mode'));
+        }
+
+        function toggleComicWatchlist() {
+            let w = getStorageSafe('nest_comic_watchlist');
+            const idx = w.findIndex(x => cleanSlug(x.slug) === cleanSlug(comicCurrentSlug));
+            const btn = document.getElementById('comicFavBtn');
+            if(idx >= 0) {
+                w.splice(idx, 1);
+                if(btn) {
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<i class="ph-bold ph-plus"></i> Tambah';
+                }
+                showNotif('Dihapus dari Watchlist', '<i class="ph-bold ph-trash"></i>');
+            } else {
+                w.unshift({ slug: comicCurrentSlug, title: comicCurrentTitle, cover: comicCurrentCover, _source: comicCurrentSource, time: Date.now() });
+                if(btn) {
+                    btn.classList.add('active');
+                    btn.innerHTML = '<i class="ph-fill ph-check-circle"></i> Tersimpan';
+                }
+                showNotif('Ditambahkan ke Watchlist', '<i class="ph-bold ph-check"></i>');
+            }
+            saveStorageSafe('nest_comic_watchlist', w);
+        }
+
+        function hmSwitchLib(type, el) {
+            document.querySelectorAll('#hmViewLibrary .hm-jadwal-tab').forEach(t => t.classList.remove('active'));
+            if(el) el.classList.add('active');
+
+            const isFav = type === 'fav';
+            const grid = document.getElementById('hmGridLibrary');
+            
+            document.getElementById('libTitleLabel').innerHTML = currentMode === 'anime' ? '<i class="ph-bold ph-monitor-play"></i> Koleksi Anime' : '<i class="ph-bold ph-book-open"></i> Koleksi Manhwa';
+
+            if(currentMode === 'anime') {
+                const aList = getStorageSafe(isFav ? 'kudo_fav' : 'kudo_hist');
+                grid.innerHTML = aList.length ? aList.map(x => renderAnimeCard(x, x._source || 'default')).join('') : '<div class="hm-empty">Koleksi Anime kosong.</div>';
+            } else {
+                const cList = getStorageSafe(isFav ? 'nest_comic_watchlist' : 'nest_comic_history');
+                grid.innerHTML = cList.length ? cList.map(x => comicCard(x, x._source || 'default')).join('') : '<div class="hm-empty">Koleksi Manhwa kosong.</div>';
+            }
+        }
+    </script>
+
+
+<script>
+(function () {
+  const applyNestTheme = () => {
+    const theme = localStorage.getItem('nest_ui_pref') || 'liquid-glass';
+    document.documentElement.classList.remove('material-3','hig-ui','neumorphism','liquid-glass');
+    document.documentElement.classList.add(theme);
+  };
+  applyNestTheme();
+  window.addEventListener('storage', applyNestTheme);
+})();
+</script>
+</body>
+</html>

@@ -1,1 +1,20 @@
-{"name":"nest-nime","version":"3.0.0","private":true,"scripts":{"start":"node server.js","dev":"vercel dev"},"engines":{"node":">=18"},"dependencies":{"cheerio":"^1.0.0"}}
+{
+  "name": "nest-stream-vercel",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Nest Stream anime full-stack app for Vercel serverless functions",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "vercel dev"
+  },
+  "engines": { "node": "22.x" },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "cheerio": "^1.0.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "vercel": "^41.6.2"
+  }
+}
