@@ -1,1 +1,0 @@
-Tempatkan file scraper (.js) milikmu di folder ini.
