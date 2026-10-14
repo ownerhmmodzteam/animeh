@@ -904,6 +904,14 @@
             document.getElementById('hmMainLayout').scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        async function hmOpenExplore() {
+            hmNavTo('search', 1);
+            const tab = document.getElementById('tabGen');
+            await hmSwitchCatalogTab('genre', tab);
+            // The tab renderer recreates the grid; always repaint from cache/API.
+            await hmLoadGenres();
+        }
+
         function hmNavTo(viewId, navIdx = null) {
             if(navIdx !== null) {
                 document.querySelectorAll('.hm-nav-item').forEach(el => el.classList.remove('active'));
@@ -1296,6 +1304,7 @@
             if (tabId === 'genre') {
                 contentDiv.innerHTML = '<div class="hm-genre-grid" id="hmFullGenreGrid" style="grid-template-columns: repeat(2, 1fr);"></div>';
                 hmRenderCatalogGenres();
+                if (!cachedGenres.length) await hmLoadGenres();
             } else if (tabId === 'jadwal') {
                 showNotif('Memuat Jadwal...');
                 const ep = currentMode === 'manhwa' ? '/comic/schedule' : '/anime/schedule';
@@ -1494,14 +1503,21 @@
                     if(source !== 'default') {
                         endpoints.push(`/anime/${source}/detail/${safeSlug}`);
                         endpoints.push(`/anime/${source}/anime/${safeSlug}`);
+                        endpoints.push(`/anime/${source}/${safeSlug}`);
+                        endpoints.push(`/anime/${source}/${safeSlug}/`);
                     }
                     endpoints.push(`/anime/anime/${safeSlug}`);
                     endpoints.push(`/anime/detail/${safeSlug}`);
                     for(const ep of endpoints) {
                         let res = await apiFetch(ep);
                         if(res) {
-                            if(res.data && typeof res.data === 'object' && !Array.isArray(res.data)) res = res.data;
-                            if(res.title || res.name || res.episodeList || res.episodes || res.list) { data = res; break; }
+                            for (let unwrap = 0; unwrap < 4 && res && typeof res === 'object'; unwrap++) {
+                                if (res.data && typeof res.data === 'object') res = res.data;
+                                else if (res.result && typeof res.result === 'object') res = res.result;
+                                else if (res.anime && typeof res.anime === 'object') res = res.anime;
+                                else break;
+                            }
+                            if(res.title || res.name || res.episodeList || res.episode_list || res.episodes || res.list) { data = res; break; }
                         }
                     }
                 }
