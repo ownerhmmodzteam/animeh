@@ -70,3 +70,10 @@ Katalog menggabungkan dua halaman dari setiap REST source Sanka yang dikonfigura
 - Scraper bergantung pada HTML situs pihak ketiga yang bisa berubah atau membatasi request. Katalog mungkin tidak lengkap saat upstream gagal.
 - Endpoint video pihak ketiga tidak selalu bisa diputar di iframe/browser. UI menyediakan pemilih sumber alternatif dan tombol buka sumber di tab baru; `Forbidden` dari penyedia tidak bisa dijamin hilang dari sisi website. Direct MP4/WebM mencoba memakai elemen video HTML. Format, CORS, referer, dan kebijakan sumber tetap menentukan kompatibilitas. Uji playback pada deployment yang aktif.
 - Gunakan sumber yang diizinkan dan patuhi ketentuan akses masing-masing layanan.
+
+
+## REST API + scraper aggregation notes
+
+The serverless service combines configured Sanka REST catalog/search responses with MiraiNime and AnimeSail catalog/search/detail/episode adapters. AnimeIndo is used for search and its detail/watch adapter where its site permits access. Records are normalized to consistent `title`, `poster`, `url`, `slug`, `score`, `genres`, and provider metadata fields, then deduplicated by normalized title/year. Detail requests try the unified `/api/anime/detail` route for both scraper and Sanka provider records before the browser falls back to direct REST routes. Genre filtering first tries the upstream genre endpoint and then filters the combined catalog locally when genre metadata is present.
+
+External sources can still time out, block requests, change HTML, or deny iframe playback. The application now handles those responses more defensively, but it cannot force a third-party source to return data or allow embedded playback.

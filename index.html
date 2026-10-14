@@ -1392,11 +1392,30 @@
         }
 
         async function hmDoFilterGenre(genreId, genreTitle) {
-            showNotif(`Filter: ${genreTitle}`);
-            document.getElementById('catalogContent').innerHTML='';
-            const ep=currentMode==='manhwa'?'/comic/genre/':'/anime/genre/';
-            const raw=await apiFetch(ep+encodeURIComponent(genreId));
-            renderSearchResults(extractListWithSource(raw,'default'),`Genre: ${escapeHTML(genreTitle)}`);
+            showNotif(`Memuat genre ${genreTitle}...`);
+            const content = document.getElementById('catalogContent');
+            if (content) content.innerHTML = '';
+            let results = [];
+            // Try the upstream genre route first, then use the unified REST+scraper catalog
+            // and filter locally. This avoids a blank Explore page when one endpoint changes shape.
+            const direct = await apiFetch((currentMode==='manhwa'?'/comic/genre/':'/anime/genre/') + encodeURIComponent(genreId));
+            results = extractListWithSource(direct, 'default');
+            if (!results.length && currentMode !== 'manhwa') {
+                const [ongoing, latest] = await Promise.all([
+                    hybridFetch('/api/anime/catalog', {type:'ongoing'}, 14000),
+                    hybridFetch('/api/anime/catalog', {type:'latest'}, 14000)
+                ]);
+                const all = mergeAndShuffle([ongoing?.items || [], latest?.items || []]);
+                const key = String(genreTitle || genreId).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+                results = all.filter(item => {
+                    const rawGenres = item.genres || item.genre || item.genreList || item.genre_list || [];
+                    const list = (Array.isArray(rawGenres) ? rawGenres : (typeof rawGenres === 'object' ? Object.values(rawGenres) : [rawGenres]))
+                      .map(g => String(typeof g === 'object' ? (g.title || g.name || g.genre || g.label || '') : g).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim());
+                    return list.some(g => g === key || g.includes(key) || key.includes(g));
+                });
+            }
+            renderSearchResults(results, `Genre: ${escapeHTML(genreTitle)}`);
+            if (!results.length) showNotif(`Belum ada data untuk genre ${genreTitle}. Coba lagi saat sumber tersedia.`);
         }
 
         function renderSearchResults(dataArray,title) {
@@ -1499,6 +1518,9 @@
                     const hybridDetail = await hybridFetch('/api/anime/detail', {provider, slug});
                     if(hybridDetail && hybridDetail.ok && hybridDetail.data) data = hybridDetail.data;
                 } else {
+                    // Unified backend first for Sanka REST providers; direct Sanka routes remain fallback.
+                    const unified = await hybridFetch('/api/anime/detail', {provider: source, slug}, 14000);
+                    if(unified && unified.ok && unified.data) data = unified.data;
                     const endpoints = [];
                     if(source !== 'default') {
                         endpoints.push(`/anime/${source}/detail/${safeSlug}`);
@@ -1508,7 +1530,7 @@
                     }
                     endpoints.push(`/anime/anime/${safeSlug}`);
                     endpoints.push(`/anime/detail/${safeSlug}`);
-                    for(const ep of endpoints) {
+                    for(const ep of (data ? [] : endpoints)) {
                         let res = await apiFetch(ep);
                         if(res) {
                             for (let unwrap = 0; unwrap < 4 && res && typeof res === 'object'; unwrap++) {
