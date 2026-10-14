@@ -1,17 +1,23 @@
-'use strict';
-const express = require('express');
-const path = require('path');
-const service = require('./lib/anime-service');
-const app = express();
-app.disable('x-powered-by');
-app.get('/api/health', service.health);
-app.get('/api/anime/catalog', service.catalog);
-app.get('/api/anime/search', service.search);
-app.get('/api/anime/genres', service.genres);
-app.get('/api/anime/detail', service.detail);
-app.get('/api/anime/episode', service.episode);
-app.use(express.static(__dirname, { index: 'index.html', dotfiles: 'ignore' }));
-app.get('*', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-const port = Number(process.env.PORT || 8787);
-if (require.main === module) app.listen(port, () => console.log(`Nest Stream running at http://localhost:${port}`));
-module.exports = app;
+// Server lokal: sajikan public/ + route /api/* (handler sama persis dengan Vercel).
+// Jalankan: npm install && npm start   (default http://localhost:3000, ganti dengan PORT=8080)
+const http = require("http"), fs = require("fs"), path = require("path"), url = require("url");
+const PORT = process.env.PORT || 3000, PUB = path.join(__dirname, "public");
+const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".webp": "image/webp" };
+const routes = { "/api/anime": require("./api/anime.js"), "/api/img": require("./api/img.js") };
+
+http.createServer((req, res) => {
+  const u = url.parse(req.url, true), h = routes[u.pathname];
+  if (h) {
+    req.query = u.query;
+    res.status = c => { res.statusCode = c; return res; };
+    res.json = o => { res.setHeader("Content-Type", "application/json; charset=utf-8"); res.end(JSON.stringify(o)); };
+    return Promise.resolve(h(req, res)).catch(e => { res.statusCode = 500; res.end(String(e)); });
+  }
+  const f = path.normalize(path.join(PUB, u.pathname === "/" ? "index.html" : u.pathname));
+  if (!f.startsWith(PUB)) { res.statusCode = 403; return res.end(); }
+  fs.readFile(f, (e, d) => {
+    if (e) { res.statusCode = 404; return res.end("Not found"); }
+    res.setHeader("Content-Type", MIME[path.extname(f)] || "application/octet-stream");
+    res.end(d);
+  });
+}).listen(PORT, () => console.log(`Nest Nime jalan di http://localhost:${PORT}`));
