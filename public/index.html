@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07060d">
+<title>Nest Nime</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%238b5cf6'/%3E%3Cpath d='M20 46V18l24 28V18' fill='none' stroke='%23fff' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#07060d;--sf:#110f1c;--sf2:#1a1727;--sf3:#241f36;--tx:#f3f1fb;--mu:#8f8aab;--ln:rgba(255,255,255,.07);--ac:#8b5cf6;--ac2:#ec4899;--gr:linear-gradient(135deg,#8b5cf6,#ec4899)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}body{margin:0;background:var(--bg);color:var(--tx);font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0 0 auto;height:60vh;background:radial-gradient(55% 75% at 20% 0,rgba(139,92,246,.22),transparent),radial-gradient(45% 65% at 90% 0,rgba(236,72,153,.13),transparent);pointer-events:none}
+button{font-family:inherit;color:inherit;cursor:pointer}a{color:inherit}
+.w{position:relative;max-width:1060px;margin:0 auto;padding:0 16px}
+.top{position:sticky;top:0;z-index:20;padding-top:env(safe-area-inset-top,0px);background:rgba(7,6,13,.72);backdrop-filter:blur(18px) saturate(1.5);-webkit-backdrop-filter:blur(18px) saturate(1.5);border-bottom:1px solid var(--ln)}
+.tb{display:flex;align-items:center;gap:12px;height:60px}
+.lm{width:32px;height:32px;flex:none;border-radius:11px;background:var(--gr);display:grid;place-items:center;box-shadow:0 6px 20px rgba(139,92,246,.45)}.lm svg{width:60%;height:60%}
+.lg{font-weight:800;font-size:18px;letter-spacing:-.4px}.lg span{color:var(--mu);font-weight:600}
+.seg{display:flex;gap:4px;margin-left:auto;min-width:0;max-width:64%;scroll-behavior:smooth;background:var(--sf);border:1px solid var(--ln);padding:4px;border-radius:14px;overflow-x:auto;scrollbar-width:none}.seg::-webkit-scrollbar{display:none}
+.seg button{border:0;background:none;color:var(--mu);font-size:12px;font-weight:700;padding:7px 12px;border-radius:10px;white-space:nowrap;transition:.25s}.seg i{flex:none;width:1px;background:var(--ln);margin:6px 4px}.seg button.on{background:var(--gr);color:#fff;box-shadow:0 4px 14px rgba(139,92,246,.4)}
+main{padding:18px 0 calc(120px + env(safe-area-inset-bottom,0px));animation:fd .45s both}
+@keyframes fd{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.hero{position:relative;border-radius:26px;overflow:hidden;min-height:230px;display:flex;align-items:flex-end;padding:22px;margin-bottom:6px;background:var(--sf);border:1px solid var(--ln)}
+.hero .hb{position:absolute;inset:-20px;width:calc(100% + 40px);height:calc(100% + 40px);object-fit:cover;filter:blur(26px) brightness(.5) saturate(1.4);transform:scale(1.1)}
+.hero:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 20%,rgba(7,6,13,.92))}
+.hero .in{position:relative;z-index:1;display:flex;gap:18px;align-items:flex-end;width:100%}.hero .po{width:112px;flex:none}
+.hero h2{margin:0 0 6px;font-size:clamp(20px,4vw,30px);letter-spacing:-.8px;line-height:1.15}.hero p{margin:0 0 14px;color:#c9c5de;font-size:12.5px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;padding:0 20px;border-radius:15px;border:0;background:var(--gr);color:#fff;font-weight:700;font-size:13px;text-decoration:none;transition:.25s}
+.btn:active{transform:scale(.96)}.btn.g{background:var(--sf3)}.btn[disabled]{opacity:.35;pointer-events:none}
+.h3{display:flex;align-items:center;justify-content:space-between;margin:24px 2px 12px;font-size:17px;font-weight:800;letter-spacing:-.4px}.h3 button{border:0;background:none;color:var(--ac);font-size:12px;font-weight:700}
+.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:2px 16px 10px;scrollbar-width:none}.rail::-webkit-scrollbar{display:none}.rail .cd{flex:none;width:128px;scroll-snap-align:start}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}@media(min-width:760px){.grid{grid-template-columns:repeat(4,1fr);gap:18px}.rail .cd{width:164px}}
+.cd{cursor:pointer;min-width:0;animation:up .5s both;transition:transform .35s cubic-bezier(.2,.9,.3,1.2)}.cd:active{transform:scale(.95)}@media(hover:hover){.cd:hover{transform:translateY(-6px)}.cd:hover .po img{transform:scale(1.06)}}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.po{position:relative;aspect-ratio:2/3;border-radius:18px;overflow:hidden;background:var(--sf2);box-shadow:0 10px 26px rgba(0,0,0,.45)}
+.po img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .5s,transform .6s}.po img.ok{opacity:1}
+.fb{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle at 30% 15%,rgba(139,92,246,.35),transparent 60%),linear-gradient(160deg,var(--sf2),var(--sf))}.fb .lm{width:44px;height:44px;border-radius:14px}.fb b{font-size:9.5px;letter-spacing:2.5px;color:var(--mu)}
+.bg{position:absolute;z-index:2;font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:99px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);color:#fff;max-width:calc(100% - 16px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bg.l{left:8px;bottom:8px}.bg.r{right:8px;top:8px;background:rgba(139,92,246,.9)}
+.ti{margin:9px 3px 0;font-size:12.5px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sk .po,.sk .l,.sk.b{background:linear-gradient(100deg,var(--sf2) 30%,var(--sf3) 50%,var(--sf2) 70%);background-size:220% 100%;animation:sm 1.3s infinite linear;box-shadow:none}.sk .l{height:11px;border-radius:6px;margin:10px 3px 0}.sk .l+.l{width:60%}.sk.b{border-radius:26px;min-height:230px;border:0}
+@keyframes sm{to{background-position:-220% 0}}
+.sb{position:relative;margin-bottom:14px}.sb input{width:100%;height:52px;border-radius:18px;border:1px solid var(--ln);background:var(--sf);color:var(--tx);font:500 15px "Plus Jakarta Sans",sans-serif;padding:0 16px 0 48px;outline:0;transition:.25s}.sb input:focus{border-color:var(--ac);box-shadow:0 0 0 4px rgba(139,92,246,.2)}.sb svg{position:absolute;left:17px;top:17px;width:18px;height:18px;color:var(--mu)}
+.chs{display:flex;gap:8px;flex-wrap:wrap}.c{height:34px;padding:0 14px;border-radius:99px;border:1px solid var(--ln);background:var(--sf);font-size:12.5px;font-weight:600;color:var(--mu);transition:.25s}.c:hover,.c.on{background:var(--gr);color:#fff;border-color:transparent}
+.emp{text-align:center;color:var(--mu);padding:70px 20px;font-size:14px;line-height:1.7;grid-column:1/-1}.emp b{display:block;font-size:34px;margin-bottom:6px}
+.more{display:block;margin:28px auto 0;height:48px;padding:0 30px;border-radius:16px;border:1px solid var(--ln);background:var(--sf);font-weight:700;font-size:13px;transition:.25s}.more:hover{border-color:var(--ac)}
+.dock{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);width:min(380px,calc(100% - 28px));display:flex;padding:7px;border-radius:26px;background:rgba(22,19,36,.72);backdrop-filter:blur(24px) saturate(1.7);-webkit-backdrop-filter:blur(24px) saturate(1.7);border:1px solid var(--ln);box-shadow:0 18px 50px rgba(0,0,0,.6);z-index:30}
+.dock button{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;border-radius:19px;font-size:10.5px;font-weight:600;color:var(--mu);transition:.3s}.dock svg{width:21px;height:21px}.dock button.on{background:var(--gr);color:#fff;box-shadow:0 6px 18px rgba(139,92,246,.45)}
+#isl{position:fixed;top:calc(10px + env(safe-area-inset-top,0px));left:50%;z-index:99;background:#000;border:1px solid var(--ln);color:#fff;border-radius:99px;height:38px;display:flex;align-items:center;gap:8px;padding:0 18px;font-size:12.5px;font-weight:600;white-space:nowrap;transform:translate(-50%,-90px) scale(.6);opacity:0;transition:transform .55s cubic-bezier(.2,1.2,.3,1),opacity .3s;box-shadow:0 10px 30px rgba(0,0,0,.6)}#isl.on{transform:translate(-50%,0) scale(1);opacity:1}
+.ov{position:fixed;inset:0;z-index:50;background:var(--bg);overflow-y:auto;opacity:0;pointer-events:none;transform:translateY(24px) scale(.98);transition:opacity .35s,transform .45s cubic-bezier(.2,.9,.25,1)}.ov.on{opacity:1;pointer-events:auto;transform:none}#pl{z-index:60}
+.ov .w{max-width:820px;padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:calc(50px + env(safe-area-inset-bottom,0px))}
+.nb{display:flex;align-items:center;gap:12px;margin-bottom:14px}.ib{width:42px;height:42px;flex:none;border-radius:14px;border:1px solid var(--ln);background:var(--sf);font-size:16px}.nb b{flex:1;font-size:14px;line-height:1.3}.nb span{font-size:11px;color:var(--mu);font-weight:700}
+.dh{position:relative;display:flex;gap:18px;border-radius:26px;overflow:hidden;padding:18px;border:1px solid var(--ln);background:var(--sf)}.dh .hb{position:absolute;inset:-20px;width:calc(100% + 40px);height:calc(100% + 40px);object-fit:cover;filter:blur(30px) brightness(.4) saturate(1.5)}.dh>*{position:relative}.dh .po{width:120px;flex:none}.dh h2{margin:2px 0 10px;font-size:20px;letter-spacing:-.5px;line-height:1.2}
+.tg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.tg i{font-style:normal;font-size:11px;font-weight:600;padding:5px 10px;border-radius:99px;background:rgba(255,255,255,.1);backdrop-filter:blur(6px)}
+.sy{color:#b9b5d0;font-size:13px;line-height:1.7;margin:16px 2px 0;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}.sy.x{-webkit-line-clamp:unset}
+.act{display:flex;gap:8px;margin:16px 0 4px}.act .btn:first-child{flex:1}
+.eg{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px}.eg button{padding:11px 0;border-radius:13px;border:1px solid var(--ln);background:var(--sf);font-size:13px;font-weight:700;transition:.2s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.eg button:hover{background:var(--gr);border-color:transparent}.eg button.vw{border-color:var(--ac);color:var(--ac)}
+.pv{aspect-ratio:16/9;border-radius:22px;overflow:hidden;background:#000;box-shadow:0 24px 60px rgba(0,0,0,.6)}.pv iframe,.pv video{width:100%;height:100%;border:0;background:#000}
+.pv.ld{background:linear-gradient(100deg,var(--sf2) 30%,var(--sf3) 50%,var(--sf2) 70%);background-size:220% 100%;animation:sm 1.3s infinite linear}
+.pn{display:flex;gap:8px;margin:14px 0}.pn .btn{flex:1;height:44px;padding:0 10px}.sc{margin:14px 0 4px}
+.pf{font-size:12px;color:var(--mu);line-height:1.6;margin:10px 2px 0}.pv.lt{aspect-ratio:auto;min-height:220px}.dd{background:var(--sf);border:1px solid var(--ln);border-radius:16px;padding:14px;margin-top:14px}.dd h4{margin:0 0 10px;font-size:13px}.dd a{text-decoration:none}.dd .c{display:inline-flex;align-items:center}
+</style>
+</head>
+<body>
+<div id="isl"></div>
+<header class="top"><div class="w tb"><div class="lm"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 49V15l30 34V15"/></svg></div><div class="lg">Nest <span>Nime</span></div><div class="seg" id="sg"></div></div></header>
+<main class="w" id="v"><div class="sk b"></div><div class="h3"><span>&nbsp;</span></div><div class="grid" id="sk0"></div></main>
+<nav class="dock" id="dk"></nav>
+<section class="ov" id="dt"></section><section class="ov" id="pl"></section>
+<script>
+const $=q=>document.querySelector(q),esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LG='<div class="lm"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 49V15l30 34V15"/></svg></div>',FB=`<div class="fb">${LG}<b>NEST NIME</b></div>`;
+const SRC=[["mirainime","Mirainime"],["animeindo","AnimeIndo"],["animesail","AnimeSail"],["samehadaku","Samehadaku"],["animekuindo","AnimeKuIndo"],["kusonime","Kusonime"],["nimegami","Nimegami"],["oploverz","Oploverz"],["winbu","Winbu"],["animasu","Animasu"],["alqanime","Alqanime"],["animekompi","AnimeKompi"],["kura","Kura"]];
+const ico={h:'<path d="M3 11l9-8 9 8v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',s:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',f:'<path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z"/>',r:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'};
+const NAV=[["h","Beranda"],["s","Cari"],["f","Favorit"],["r","Riwayat"]];
+const ls={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let S={src:ls.get("src","mirainime"),v:"h"},tok=0,D=null,P={page:1,busy:false};
+if(!SRC.some(x=>x[0]===S.src))S.src="mirainime";
+const SK=n=>'<div class="cd sk"><div class="po"></div><div class="l"></div><div class="l"></div></div>'.repeat(n);
+$("#sk0").innerHTML=SK(8);
+async function api(p,n=1){for(let i=0;i<=n;i++){const c=new AbortController(),t=setTimeout(()=>c.abort(),20000);try{const r=await fetch(p,{signal:c.signal});clearTimeout(t);if(!r.ok)throw new Error(r.status);return await r.json()}catch(e){clearTimeout(t);if(i===n)throw e;await new Promise(r=>setTimeout(r,300*2**i))}}}
+let it;function toast(m,i="✓"){const e=$("#isl");e.innerHTML=`<span>${i}</span>${esc(m)}`;e.classList.add("on");clearTimeout(it);it=setTimeout(()=>e.classList.remove("on"),2300)}
+function im(p){return p?`<img loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="" data-o="${esc(p)}" src="${esc(p)}" onload="this.classList.add('ok')" onerror="ie(this)">`:FB}
+function ie(i){if(!i.dataset.px){i.dataset.px=1;i.src="/api/img?u="+encodeURIComponent(i.dataset.o)}else i.parentNode.innerHTML=FB}
+const card=(a,i=0,s=a.src||S.src)=>`<div class="cd" style="animation-delay:${(i%12)*40}ms" data-id="${esc(a.id)}" data-s="${s}"><div class="po">${im(a.p)}${a.r?`<span class="bg r">★ ${esc(a.r)}</span>`:""}${a.sub?`<span class="bg l">${esc(a.sub)}</span>`:""}</div><div class="ti">${esc(a.t)}</div></div>`;
+const rail=(t,arr)=>arr.length?`<div class="h3"><span>${t}</span></div><div class="rail">${arr.map((a,i)=>card(a,i)).join("")}</div>`:"";
+const err=(m)=>`<div class="emp"><b>🥺</b>${m}</div>`;
+function chrome(){$("#sg").innerHTML=SRC.map(([k,n],i)=>`${i===3?"<i></i>":""}<button data-src="${k}" class="${S.src===k?"on":""}">${n}</button>`).join("");const on=$("#sg .on");if(on)$("#sg").scrollLeft=on.offsetLeft-70;$("#dk").innerHTML=NAV.map(([k,l])=>`<button data-v="${k}" class="${S.v===k?"on":""}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ico[k]}</svg>${l}</button>`).join("")}
+function go(v){S.v=v;tok++;chrome();scrollTo({top:0});const m=$("#v");m.style.animation="none";m.offsetWidth;m.style.animation="";({h:home,s:find,f:favs,r:hist})[v]()}
+const tail=(k)=>`/api/anime?src=${S.src}&action=${k}`;
+async function home(){const k=tok;P={page:1,busy:false};
+$("#v").innerHTML=`<div id="hr"><div class="sk b"></div></div><div id="hl"></div><div class="h3"><span>Terbaru di ${esc(SRC.find(x=>x[0]===S.src)[1])}</span></div><div class="grid" id="gr">${SK(8)}</div><div id="mb"></div>`;
+const h=ls.get("hist",[]).slice(0,10);$("#hl").innerHTML=rail("Lanjutkan menonton",h);
+await more(k)}
+async function more(k){if(P.busy)return;P.busy=true;
+try{const r=await api(`${tail("home")}&page=${P.page}`);if(k!==tok||S.v!=="h"){P.busy=false;return}const its=r.items||[];
+if(P.page===1){$("#gr").innerHTML="";const f=its[0];
+$("#hr").innerHTML=f?`<div class="hero" data-id="${esc(f.id)}" data-s="${S.src}" style="cursor:pointer">${f.p?`<img class="hb" referrerpolicy="no-referrer" src="${esc(f.p)}" onerror="this.remove()" alt="">`:""}<div class="in"><div class="po">${im(f.p)}</div><div><h2>${esc(f.t)}</h2><p>${esc(f.sub||"Rekomendasi hari ini")}</p><span class="btn">▶ Lihat detail</span></div></div></div>`:""}
+if(!its.length&&P.page===1){$("#gr").innerHTML=err("Tidak ada data dari sumber ini.<br>Coba ganti sumber di kanan atas.");$("#mb").innerHTML="";P.busy=false;return}
+$("#gr").insertAdjacentHTML("beforeend",its.map((a,i)=>card(a,i)).join(""));
+$("#mb").innerHTML=its.length?'<button class="more" id="ml">Muat lebih banyak</button>':"";P.page++}
+catch(e){if(k===tok){if(P.page===1)$("#gr").innerHTML=err("Gagal memuat dari sumber.<br>Coba ganti sumber atau muat ulang.");toast("Gagal memuat data","⚠")}}P.busy=false}
+function find(){const k=tok;$("#v").innerHTML=`<div class="sb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">${ico.s}</svg><input id="q" type="search" placeholder="Cari anime di ${esc(SRC.find(x=>x[0]===S.src)[1])}…" autocomplete="off" value="${esc(window.LQ||"")}"></div><div id="rs"></div>`;
+const q=$("#q");if(window.LQ)run(window.LQ,k);else hint();setTimeout(()=>q.focus({preventScroll:true}),50)}
+function hint(){$("#rs").innerHTML=`<div class="h3"><span>Coba cari</span></div><div class="chs">${["One Piece","Naruto","Isekai","Jujutsu Kaisen","Demon Slayer","Solo Leveling"].map(x=>`<button class="c" data-q="${x}">${x}</button>`).join("")}</div>`}
+async function run(q,k=tok){window.LQ=q;if(!q.trim())return hint();$("#rs").innerHTML=`<div class="grid">${SK(8)}</div>`;
+try{const r=await api(`${tail("search")}&q=${encodeURIComponent(q)}`);if(k!==tok)return;const a=r.items||[];$("#rs").innerHTML=a.length?`<div class="h3"><span>${a.length} hasil</span></div><div class="grid">${a.map((x,i)=>card(x,i)).join("")}</div>`:`<div class="grid">${err("Tidak ada hasil untuk “"+esc(q)+"”.")}</div>`}
+catch(e){if(k===tok)$("#rs").innerHTML=`<div class="grid">${err("Gagal mencari. Coba lagi.")}</div>`}}
+const lst=(t,a,e)=>{$("#v").innerHTML=`<div class="h3" style="margin-top:4px"><span>${t}</span>${a.length&&t==="Riwayat"?'<button id="ch">Hapus semua</button>':""}</div><div class="grid">${a.length?a.map((x,i)=>card(x,i)).join(""):err(e)}</div>`};
+const favs=()=>lst("Favorit",Object.values(ls.get("fav",{})),"Belum ada favorit.<br>Ketuk ♡ di halaman detail anime.");
+const hist=()=>lst("Riwayat",ls.get("hist",[]),"Belum ada riwayat tontonan.");
+const epl=(e,i)=>{const m=String(e.n).match(/\d+(?:\.\d+)?/);return m?m[0]:String(i+1)};
+async function openD(id,src){const el=$("#dt");el.classList.add("on");el.scrollTop=0;
+el.innerHTML=`<div class="w"><div class="nb"><button class="ib" data-x="dt">←</button></div><div class="sk b" style="min-height:190px"></div><div class="grid" style="margin-top:20px;grid-template-columns:repeat(5,1fr)">${SK(5)}</div></div>`;
+try{const d=await api(`/api/anime?src=${src}&action=detail&id=${encodeURIComponent(id)}`);D={src,d,asc:true};drawD()}
+catch(e){el.innerHTML=`<div class="w"><div class="nb"><button class="ib" data-x="dt">←</button></div>${err("Gagal memuat detail.<br>Sumber mungkin sedang bermasalah.")}</div>`}}
+function drawD(){const {src,d,asc}=D,F=ls.get("fav",{}),key=src+"|"+d.id,hs=ls.get("hist",[]).find(x=>x.s===src&&x.id===d.id),E=d.episodes,start=hs&&E[hs.ep]?hs.ep:0;
+const order=E.map((e,i)=>i);if(!asc)order.reverse();
+$("#dt").innerHTML=`<div class="w"><div class="nb"><button class="ib" data-x="dt">←</button><b>${esc(d.t)}</b><span>${esc(SRC.find(x=>x[0]===src)[1])}</span></div>
+<div class="dh">${d.p?`<img class="hb" referrerpolicy="no-referrer" src="${esc(d.p)}" onerror="this.remove()" alt="">`:""}<div class="po">${im(d.p)}</div><div><h2>${esc(d.t)}</h2><div class="tg">${d.r?`<i>★ ${esc(d.r)}</i>`:""}${(d.g||[]).slice(0,5).map(x=>`<i>${esc(x)}</i>`).join("")}</div><div class="tg">${Object.entries(d.info||{}).slice(0,4).map(([k,v])=>`<i>${esc(k)}: ${esc(String(v).slice(0,24))}</i>`).join("")}<i>${E.length} episode</i></div></div></div>
+${d.sy?`<div class="sy" id="sy">${esc(d.sy)}</div>`:""}
+<div class="act"><button class="btn" data-w="${start}" ${E.length?"":"disabled"}>▶ ${hs?"Lanjutkan Eps "+esc(epl(E[start],start)):"Mulai nonton"}</button><button class="btn g" id="fv">${F[key]?"♥":"♡"}</button></div>
+<div class="h3"><span>Episode</span><button id="so">${asc?"Terlama ↑":"Terbaru ↓"}</button></div>
+<div class="eg">${order.map(i=>`<button class="${hs&&hs.ep===i?"vw":""}" data-w="${i}" title="${esc(E[i].t)}">${esc(epl(E[i],i))}</button>`).join("")}</div>${E.length?"":err("Belum ada episode.")}</div>`}
+async function watch(i){const {src,d}=D,E=d.episodes,e=E[i];if(!e)return;const pl=$("#pl");pl.classList.add("on");pl.scrollTop=0;
+const H=ls.get("hist",[]).filter(x=>!(x.s===src&&x.id===d.id));H.unshift({s:src,src,id:d.id,t:d.t,p:d.p,sub:"Eps "+epl(e,i),ep:i});ls.set("hist",H.slice(0,40));
+const top=`<div class="nb"><button class="ib" data-x="pl">←</button><b>${esc(d.t)}</b><span>Eps ${esc(epl(e,i))}</span></div>`;
+pl.innerHTML=`<div class="w">${top}<div class="pv ld"></div></div>`;
+const nav=(j,n)=>`<button class="btn ${n?"":"g"}" ${E[j]?`data-w="${j}"`:"disabled"}>${n?"Berikutnya →":"← Sebelumnya"}</button>`;
+try{const r=await api(`/api/anime?src=${src}&action=episode&id=${encodeURIComponent(e.id)}`);D.cur={r,i};
+pl.innerHTML=`<div class="w">${top}<div class="pv" id="pv"></div><div id="sv"></div><div id="vc"></div><div class="pn">${nav(i-1,0)}${nav(i+1,1)}</div><div id="dl"></div></div>`;
+play(0);toast("Memutar episode "+epl(e,i),"▶");
+$("#dl").innerHTML=dlh(r.downloads||[],r.dlLazy)}
+catch(x){pl.innerHTML=`<div class="w">${top}${err("Gagal memuat episode ini.<br>Coba episode lain atau sumber lain.")}</div>`}}
+const ifr=(u,px)=>`<iframe src="${px?"/api/embed?u="+encodeURIComponent(u):esc(u)}" allowfullscreen allowfullscreen="true" webkitallowfullscreen mozallowfullscreen scrolling="no" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+let hj;function hls(v,u){if(!v)return;if(v.canPlayType("application/vnd.apple.mpegurl")){v.src=u;return}
+const go=()=>{if(!window.Hls||!Hls.isSupported()){v.src=u;return}const h=new Hls();h.loadSource(u);h.attachMedia(v);h.on(Hls.Events.ERROR,(_,e)=>{if(e.fatal)toast("Stream gagal diputar","⚠")})};
+if(window.Hls)return go();if(!hj){hj=new Promise(r=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";s.onload=r;s.onerror=r;document.head.appendChild(s)})}hj.then(go)}
+function play(k){const {r,i}=D.cur,st=r.streams||[],s=st[k];if(!s){$("#pv").innerHTML='<div class="emp" style="color:#fff;padding:14% 10px">Server belum tersedia untuk episode ini.</div>';return}
+D.k=k;D.px=false;$("#pv").innerHTML=s.type==="iframe"?ifr(s.url):`<video controls playsinline autoplay referrerpolicy="no-referrer" ${s.type==="hls"?"":`src="${esc(s.url)}"`}></video>`;if(s.type==="hls")hls($("#pv video"),s.url);
+$("#sv").innerHTML=st.length>1?`<div class="chs sc">${st.map((x,j)=>`<button class="c ${j===k?"on":""}" data-sv="${j}">${esc(x.server)}${x.size?" · "+esc(x.size):""}</button>`).join("")}</div>`:"";
+$("#vc").innerHTML=s.type==="iframe"?`<div class="chs sc"><button class="c" data-rl="1">↻ Muat ulang</button><button class="c" id="px">Mode proxy</button><a class="c" target="_blank" rel="noopener" href="${esc(s.url)}" style="display:inline-flex;align-items:center;text-decoration:none">↗ Tab baru</a></div><div class="pf">Layar kosong atau “diblokir”? Coba <b>Mode proxy</b>, server lain, atau buka di tab baru.</div>`:'<div class="chs sc"><button class="c" data-sk="-10">⟲ 10s</button><button class="c" data-sk="10">10s ⟳</button></div>';
+const v=$("#pv video");if(v)v.onended=()=>{const n=D.d.episodes[i+1];if(n){toast("Lanjut ke episode berikutnya","⏭");watch(i+1)}}}
+const dlh=(a,lazy)=>(a.length?`<div class="dd"><h4>Download</h4><div class="chs">${a.map(x=>`<a class="c" target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.label)}</a>`).join("")}</div></div>`:"")+(lazy&&!a.length?'<div class="dd"><h4>Download</h4><button class="c" id="ld">Muat link download</button></div>':"");
+document.addEventListener("click",async e=>{const t=e.target;
+const sg=t.closest("#sg [data-src]");if(sg){S.src=sg.dataset.src;ls.set("src",S.src);window.LQ="";if(S.v==="f"||S.v==="r")S.v="h";return go(S.v)}
+const dk=t.closest("#dk button");if(dk){["dt","pl"].forEach(x=>$("#"+x).classList.remove("on"));return go(dk.dataset.v)}
+const x=t.closest("[data-x]");if(x){const o=$("#"+x.dataset.x);o.classList.remove("on");if(x.dataset.x==="pl"){setTimeout(()=>{if(!o.classList.contains("on"))o.innerHTML=""},400);if(D)drawD()}return}
+const cd=t.closest(".cd[data-id],.hero[data-id]");if(cd)return openD(cd.dataset.id,cd.dataset.s);
+const w=t.closest("[data-w]");if(w)return watch(+w.dataset.w);
+const sv=t.closest("[data-sv]");if(sv)return play(+sv.dataset.sv);
+if(t.closest("[data-rl]")){const s=D.cur.r.streams[D.k];$("#pv").innerHTML=ifr(s.url,D.px);return}
+if(t.id==="px"){D.px=!D.px;const s=D.cur.r.streams[D.k];$("#pv").innerHTML=ifr(s.url,D.px);t.classList.toggle("on",D.px);toast(D.px?"Mode proxy aktif":"Mode proxy mati","🛰");return}
+const sk=t.closest("[data-sk]");if(sk){const v=$("#pv video");if(v)v.currentTime+=+sk.dataset.sk;return}
+const q=t.closest("[data-q]");if(q){$("#q").value=q.dataset.q;return run(q.dataset.q)}
+if(t.id==="ml")return more(tok);
+if(t.id==="sy")return t.classList.toggle("x");
+if(t.id==="so"){D.asc=!D.asc;return drawD()}
+if(t.id==="ch"){ls.set("hist",[]);toast("Riwayat dihapus","🗑");return hist()}
+if(t.id==="fv"){const F=ls.get("fav",{}),k=D.src+"|"+D.d.id;if(F[k]){delete F[k];toast("Dihapus dari favorit","♡")}else{F[k]={src:D.src,id:D.d.id,t:D.d.t,p:D.d.p,sub:D.d.r?"★ "+D.d.r:""};toast("Ditambah ke favorit","♥")}ls.set("fav",F);t.textContent=F[k]?"♥":"♡";return}
+if(t.id==="ld"){t.textContent="Memuat…";try{const r=await api(`/api/anime?src=${D.src}&action=download&id=${encodeURIComponent(D.d.episodes[D.cur.i].id)}`);const a=r.downloads||[];$("#dl").innerHTML=a.length?dlh(a):'<div class="dd"><h4>Download</h4><span style="color:var(--mu);font-size:13px">Link tidak tersedia.</span></div>'}catch(_){t.textContent="Gagal, coba lagi"}}});
+let qt;document.addEventListener("input",e=>{if(e.target.id==="q"){clearTimeout(qt);const v=e.target.value;qt=setTimeout(()=>run(v),380)}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){const o=$("#pl").classList.contains("on")?$("#pl"):$("#dt").classList.contains("on")?$("#dt"):null;if(o){o.classList.remove("on");if(o.id==="pl"){o.innerHTML="";if(D)drawD()}}}if(e.key==="/"&&!/INPUT|TEXTAREA/.test(document.activeElement.tagName)){e.preventDefault();go("s")}});
+chrome();setTimeout(()=>home(),700);
+</script>
+</body>
+</html>

@@ -8,6 +8,8 @@ Tidak ada database / data statis: semua data di-scrape live dan di-cache 5 menit
 ## Struktur
 - `public/index.html` — UI dark (skeleton, hero, detail, player video/iframe, favorit, riwayat, pemilih sumber)
 - `api/anime.js` — satu router: `?src=mirainime|animeindo|animesail&action=home|search|detail|episode|download|sources`
+- `api/embed.js` — mode proxy iframe (untuk player yang memblokir iframe / butuh Referer sumber; terisolasi CSP sandbox, blokir IP privat)
+- `lib/norm.js` — normalisasi semua data: URL (https, //, data:), iframe (URL/HTML/ter-escape/base64), judul, nomor episode, stream (iframe/video/hls)
 - `api/img.js` — proxy poster (fallback kalau hotlink diblokir; hanya host sumber)
 - `lib/sources/*.js` — scraper per sumber (cheerio): `home, search, detail, episode, (download)`
 - `lib/http.js` — fetch + cache + retry
