@@ -3,7 +3,7 @@
 const http = require("http"), fs = require("fs"), path = require("path"), url = require("url");
 const PORT = process.env.PORT || 3000, PUB = path.join(__dirname, "public");
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".ico": "image/x-icon", ".webp": "image/webp" };
-const routes = { "/api/anime": require("./api/anime.js"), "/api/img": require("./api/img.js"), "/api/embed": require("./api/embed.js") };
+const routes = { "/api/anime": require("./api/anime.js"), "/api/img": require("./api/img.js"), "/api/embed": require("./api/embed.js"), "/api/player": require("./api/player.js"), "/api/stream": require("./api/stream.js") };
 
 http.createServer((req, res) => {
   const u = url.parse(req.url, true), h = routes[u.pathname];

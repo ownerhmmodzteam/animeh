@@ -10,6 +10,8 @@ Tidak ada database / data statis: semua data di-scrape live dan di-cache 5 menit
 - `api/anime.js` — satu router: `?src=mirainime|animeindo|animesail&action=home|search|detail|episode|download|sources`
 - `api/embed.js` — mode proxy iframe (untuk player yang memblokir iframe / butuh Referer sumber; terisolasi CSP sandbox, blokir IP privat)
 - `lib/norm.js` — normalisasi semua data: URL (https, //, data:), iframe (URL/HTML/ter-escape/base64), judul, nomor episode, stream (iframe/video/hls)
+- `api/player.js` — halaman player mini untuk iframe (video direct/HLS, no-referrer, auto-fallback ke proxy)
+- `api/stream.js` — proxy video ber-Referer sumber + Range (anti-Forbidden); SSRF-safe via `lib/net.js`
 - `api/img.js` — proxy poster (fallback kalau hotlink diblokir; hanya host sumber)
 - `lib/sources/*.js` — scraper per sumber (cheerio): `home, search, detail, episode, (download)`
 - `lib/http.js` — fetch + cache + retry
@@ -29,3 +31,8 @@ Vercel: `vercel` / `vercel --prod`. Root Directory = folder yang berisi `api/` d
 - `/api/anime?src=mirainime&action=episode&id=<slug>:<no>`  → streams[] (video/iframe)
 - `/api/anime?src=mirainime&action=download&id=<slug>:<no>` → link download per resolusi
 - AnimeIndo/AnimeSail: `id` = path halaman (mis. `/anime/xxx/`), dikembalikan oleh `home`/`search`.
+
+
+## Catatan stream
+Semua `streams[]` dari API selalu bertipe `iframe`: video direct/HLS dibungkus `/api/player?u=...`, Google Drive & YouTube diubah ke URL embed. Klien cukup merender `<iframe src=url>` — tidak perlu player `<video>` sendiri.
+Daftar episode Mirainime digabung dari HTML + JSON `/anime/{slug}/download?ajax=1` (semua halaman) supaya tombol Mulai selalu punya episode.

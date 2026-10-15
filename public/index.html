@@ -134,14 +134,11 @@ play(0);toast("Memutar episode "+epl(e,i),"▶");
 $("#dl").innerHTML=dlh(r.downloads||[],r.dlLazy)}
 catch(x){pl.innerHTML=`<div class="w">${top}${err("Gagal memuat episode ini.<br>Coba episode lain atau sumber lain.")}</div>`}}
 const ifr=(u,px)=>`<iframe src="${px?"/api/embed?u="+encodeURIComponent(u):esc(u)}" allowfullscreen allowfullscreen="true" webkitallowfullscreen mozallowfullscreen scrolling="no" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture; clipboard-write" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
-let hj;function hls(v,u){if(!v)return;if(v.canPlayType("application/vnd.apple.mpegurl")){v.src=u;return}
-const go=()=>{if(!window.Hls||!Hls.isSupported()){v.src=u;return}const h=new Hls();h.loadSource(u);h.attachMedia(v);h.on(Hls.Events.ERROR,(_,e)=>{if(e.fatal)toast("Stream gagal diputar","⚠")})};
-if(window.Hls)return go();if(!hj){hj=new Promise(r=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";s.onload=r;s.onerror=r;document.head.appendChild(s)})}hj.then(go)}
 function play(k){const {r,i}=D.cur,st=r.streams||[],s=st[k];if(!s){$("#pv").innerHTML='<div class="emp" style="color:#fff;padding:14% 10px">Server belum tersedia untuk episode ini.</div>';return}
-D.k=k;D.px=false;$("#pv").innerHTML=s.type==="iframe"?ifr(s.url):`<video controls playsinline autoplay referrerpolicy="no-referrer" ${s.type==="hls"?"":`src="${esc(s.url)}"`}></video>`;if(s.type==="hls")hls($("#pv video"),s.url);
+D.k=k;D.px=false;$("#pv").innerHTML=ifr(s.url);
 $("#sv").innerHTML=st.length>1?`<div class="chs sc">${st.map((x,j)=>`<button class="c ${j===k?"on":""}" data-sv="${j}">${esc(x.server)}${x.size?" · "+esc(x.size):""}</button>`).join("")}</div>`:"";
-$("#vc").innerHTML=s.type==="iframe"?`<div class="chs sc"><button class="c" data-rl="1">↻ Muat ulang</button><button class="c" id="px">Mode proxy</button><a class="c" target="_blank" rel="noopener" href="${esc(s.url)}" style="display:inline-flex;align-items:center;text-decoration:none">↗ Tab baru</a></div><div class="pf">Layar kosong atau “diblokir”? Coba <b>Mode proxy</b>, server lain, atau buka di tab baru.</div>`:'<div class="chs sc"><button class="c" data-sk="-10">⟲ 10s</button><button class="c" data-sk="10">10s ⟳</button></div>';
-const v=$("#pv video");if(v)v.onended=()=>{const n=D.d.episodes[i+1];if(n){toast("Lanjut ke episode berikutnya","⏭");watch(i+1)}}}
+$("#vc").innerHTML=s.url.includes("/api/player")?"":'<div class="chs sc"><button class="c" data-rl="1">↻ Muat ulang</button><button class="c" id="px">Mode proxy</button></div>';
+}
 const dlh=(a,lazy)=>(a.length?`<div class="dd"><h4>Download</h4><div class="chs">${a.map(x=>`<a class="c" target="_blank" rel="noopener" href="${esc(x.url)}">${esc(x.label)}</a>`).join("")}</div></div>`:"")+(lazy&&!a.length?'<div class="dd"><h4>Download</h4><button class="c" id="ld">Muat link download</button></div>':"");
 document.addEventListener("click",async e=>{const t=e.target;
 const sg=t.closest("#sg [data-src]");if(sg){S.src=sg.dataset.src;ls.set("src",S.src);window.LQ="";if(S.v==="f"||S.v==="r")S.v="h";return go(S.v)}
@@ -152,7 +149,6 @@ const w=t.closest("[data-w]");if(w)return watch(+w.dataset.w);
 const sv=t.closest("[data-sv]");if(sv)return play(+sv.dataset.sv);
 if(t.closest("[data-rl]")){const s=D.cur.r.streams[D.k];$("#pv").innerHTML=ifr(s.url,D.px);return}
 if(t.id==="px"){D.px=!D.px;const s=D.cur.r.streams[D.k];$("#pv").innerHTML=ifr(s.url,D.px);t.classList.toggle("on",D.px);toast(D.px?"Mode proxy aktif":"Mode proxy mati","🛰");return}
-const sk=t.closest("[data-sk]");if(sk){const v=$("#pv video");if(v)v.currentTime+=+sk.dataset.sk;return}
 const q=t.closest("[data-q]");if(q){$("#q").value=q.dataset.q;return run(q.dataset.q)}
 if(t.id==="ml")return more(tok);
 if(t.id==="sy")return t.classList.toggle("x");
