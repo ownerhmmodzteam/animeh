@@ -472,6 +472,8 @@
         const API_BASE = (typeof CONFIG_SISTEM !== 'undefined' && CONFIG_SISTEM.api_base) ? CONFIG_SISTEM.api_base : "https://www.sankavollerei.web.id";
         
         let cachedGenres = [];
+        let activeCatalogTab = 'genre';
+        let catalogRequestToken = 0;
         let cachedRilis = {};
         let cachedAlpha = [];
         let currentDetailEps = [];
@@ -973,14 +975,15 @@
             let rawScore = anime.score ?? anime.rating ?? '';
             let scoreNum = parseFloat(String(rawScore).replace(',', '.'));
             const score = Number.isFinite(scoreNum) && scoreNum > 0 ? scoreNum.toFixed(1) : 'N/A';
-            const badgeLabel = escapeHTML(getBadgeText(anime, 'anime'));
+            const badgeValue = getBadgeText(anime, 'anime');
+            const badgeLabel = badgeValue === '?' ? '' : escapeHTML(badgeValue);
             if(!targetSlug) return '';
             return `
             <div class="hm-anime-card hm-interactive" onclick="hmLoadDetail(decodeURIComponent('${makeSafe(targetSlug)}'), decodeURIComponent('${makeSafe(actualSource)}'))">
                 <div class="hm-ac-thumb-wrap">
                     <img src="${poster}" class="hm-ac-img" loading="lazy" onerror="this.src='https://placehold.co/200x300/0F1115/D4AF37?text=Nest'">
                     <div class="hm-ac-score"><i class="ph-fill ph-star"></i> ${score}</div>
-                    <div class="hm-ac-ep">${badgeLabel}</div>
+                    <div class="hm-ac-ep" style="${badgeLabel ? '' : 'display:none;'}">${badgeLabel}</div>
                 </div>
                 <div class="hm-ac-title">${title}</div>
             </div>`;
@@ -1113,34 +1116,54 @@
         }
 
         async function hmSwitchCatalogTab(tabId, el) {
-            document.querySelectorAll('#hmViewSearch .hm-jadwal-tab').forEach(t => t.classList.remove('active'));
-            if(el) el.classList.add('active');
+            // Keep the selected tab and its content in sync, even after fast taps/navigation.
+            if (!['genre', 'jadwal', 'alfabet'].includes(tabId)) tabId = 'genre';
+            activeCatalogTab = tabId;
+            const token = ++catalogRequestToken;
+            document.querySelectorAll('#hmViewSearch .hm-jadwal-tab').forEach(t => {
+                const tab = t.getAttribute('onclick') || '';
+                t.classList.toggle('active', tab.includes(`'${tabId}'`));
+            });
             const contentDiv = document.getElementById('catalogContent');
-            contentDiv.innerHTML = '<div class="skeleton" style="height: 160px; width: 100%; border-radius: var(--radius-lg);"></div>';
-            document.getElementById('hmSearchHeader').style.display = 'none';
-            document.getElementById('hmGridSearch').innerHTML = '';
+            const searchHeader = document.getElementById('hmSearchHeader');
+            const searchGrid = document.getElementById('hmGridSearch');
+            if (!contentDiv || !searchHeader || !searchGrid) return;
+            contentDiv.innerHTML = '<div class="skeleton" style="height:160px;width:100%;border-radius:var(--radius-lg);"></div>';
+            searchHeader.style.display = 'none';
+            searchGrid.innerHTML = '';
 
             if (tabId === 'genre') {
-                contentDiv.innerHTML = '<div class="hm-genre-grid" id="hmFullGenreGrid" style="grid-template-columns: repeat(2, 1fr);"></div>';
+                contentDiv.innerHTML = '<div class="hm-genre-grid" id="hmFullGenreGrid" style="grid-template-columns:repeat(2,1fr);"></div>';
+                if (!cachedGenres.length) await hmLoadGenres();
+                if (token !== catalogRequestToken || activeCatalogTab !== 'genre') return;
                 hmRenderCatalogGenres();
-            } else if (tabId === 'jadwal') {
-                showNotif('Memuat Jadwal...');
-                const ep = currentMode === 'manhwa' ? '/comic/schedule' : '/anime/schedule';
-                const data = await apiFetch(ep);
-                cachedRilis = {};
-                const scheduleArr = Array.isArray(data) ? data : (data?.scheduleList || data?.list || data?.data || []);
-                scheduleArr.forEach(dayData => {
-                    cachedRilis[dayData.day] = dayData.animeList || dayData.anime_list || dayData.comicList || dayData.comic_list || dayData.list || [];
-                });
-                hideNotif();
-                renderJadwal(contentDiv);
-            } else if (tabId === 'alfabet') {
-                showNotif('Memuat Index...');
-                const ep = currentMode === 'manhwa' ? '/comic/list' : '/anime/animelist';
-                const data = await apiFetch(ep);
-                cachedAlpha = (data && (data.list || data.animeList || data.comicList || data.data)) ? (data.list || data.animeList || data.comicList || data.data) : (Array.isArray(data) ? data : []);
-                hideNotif();
-                renderAlfabet(contentDiv);
+                return;
+            }
+
+            showNotif(tabId === 'jadwal' ? 'Memuat Jadwal...' : 'Memuat Index...');
+            try {
+                if (tabId === 'jadwal') {
+                    const data = await apiFetch('/anime/schedule');
+                    if (token !== catalogRequestToken || activeCatalogTab !== tabId) return;
+                    cachedRilis = {};
+                    const scheduleArr = Array.isArray(data) ? data : (data?.scheduleList || data?.schedule || data?.list || data?.data || []);
+                    scheduleArr.forEach(dayData => {
+                        const day = dayData.day || dayData.name || dayData.releaseDay;
+                        if (!day) return;
+                        cachedRilis[day] = dayData.animeList || dayData.anime_list || dayData.list || dayData.items || [];
+                    });
+                    renderJadwal(contentDiv);
+                } else {
+                    const data = await apiFetch('/anime/animelist');
+                    if (token !== catalogRequestToken || activeCatalogTab !== tabId) return;
+                    const value = unwrapPayload(data);
+                    cachedAlpha = Array.isArray(value) ? value : (value?.list || value?.animeList || value?.anime_list || value?.data || []);
+                    renderAlfabet(contentDiv);
+                }
+            } catch (err) {
+                if (token === catalogRequestToken) contentDiv.innerHTML = '<div class="hm-empty">Gagal memuat data. Coba lagi.</div>';
+            } finally {
+                if (token === catalogRequestToken) hideNotif();
             }
         }
 
@@ -1450,18 +1473,24 @@
             const historyList = getStorageSafe('hm_read_history');
             
             const listToRender = currentDetailEps.slice(0, limit);
+            const parsedNumbers = listToRender.map((e, i) => {
+                const raw = [e?.episodeNumber, e?.episode_number, e?.number, e?.eps, e?.title, e?.episode, e?.name]
+                    .find(v => v !== undefined && v !== null && String(v).trim() !== '');
+                const text = typeof raw === 'object' ? '' : String(raw ?? '').trim();
+                if (!text || text === '?' || /^episode\s*\??$/i.test(text)) return null;
+                const match = text.match(/(?:episode|ep|#)\s*(\d+(?:\.\d+)?)/i) || text.match(/^\s*(\d+(?:\.\d+)?)\s*$/i);
+                return match ? match[1] : null;
+            });
+            const counts = parsedNumbers.reduce((acc, n) => { if (n !== null) acc[n] = (acc[n] || 0) + 1; return acc; }, {});
             const html = listToRender.map((e, i) => {
-                const epSlug = cleanSlug(e.href || e.slug || e.url || e.id || e);
+                const epSlug = cleanSlug(e?.href || e?.slug || e?.url || e?.id || e);
                 const isCurrent = i === activeIdx;
                 const isRead = historyList.includes(epSlug) || isCurrent;
-                
-                let titleObj = e.title || e.eps || e.episode || e.name || '';
-                if(typeof titleObj === 'object') titleObj = '';
-                const match = String(titleObj).match(/\d+(\.\d+)?/);
-                let numDisplay = match ? match[0] : String(i + 1);
-
+                // Duplicate placeholder numbers (e.g. every episode labelled "Episode 2") are unreliable.
+                const parsed = parsedNumbers[i];
+                const numDisplay = parsed !== null && counts[parsed] === 1 ? parsed : String(i + 1);
                 const stateClass = isCurrent ? 'ep-active' : (isRead ? 'ep-read' : 'ep-unread');
-                return `<button class="hm-ep-box hm-interactive ${stateClass}" onclick="hmPlayStreamIdx(${i})">${escapeHTML(numDisplay)}</button>`;
+                return `<button class="hm-ep-box hm-interactive ${stateClass}" aria-label="Episode ${escapeHTML(numDisplay)}" onclick="hmPlayStreamIdx(${i})">${escapeHTML(numDisplay)}</button>`;
             }).join('');
             
             let finalHtml = html;
