@@ -616,30 +616,75 @@
             return getArrayField(data, ['chapter_list', 'chapterList', 'chapters', 'chapter', 'list']);
         }
 
+        async function scrapeFallback(path, params = {}) {
+            // Fallback HTML scraper: only invoked after REST failure/empty payload.
+            // MiraiNime is the first supported scraper; other sources are not implied to exist.
+            const page = Number(params.page || 1);
+            const isListing = /\/(home|ongoing-anime|complete-anime|ongoing|completed|latest)$/.test(path) || /\/home$/.test(path);
+            let target = '';
+            if (isListing) {
+                target = `https://mirainime.com/anime${page > 1 ? `?page=${page}` : ''}`;
+            } else {
+                const match = path.match(/\/anime\/(?:[^/]+\/)?(?:detail|anime)?\/?([^/?]+)$/i)
+                    || path.match(/\/anime\/(?:episode|server)\/([^/?]+)/i)
+                    || path.match(/\/anime\/([^/?]+)$/i);
+                if (match && match[1]) {
+                    const slug = decodeURIComponent(match[1]).replace(/^\/+|\/+$/g, '');
+                    target = `https://mirainime.com/${/episode|server/.test(path) ? 'nonton' : 'anime'}/${encodeURIComponent(slug)}`;
+                }
+            }
+            if (!target) return null;
+            try {
+                const u = new URL('/api/scrape', window.location.origin);
+                u.searchParams.set('source', 'mirainime');
+                u.searchParams.set('url', target);
+                const r = await fetch(u.toString(), { headers: { Accept: 'application/json' } });
+                if (!r.ok) throw new Error(`Scraper HTTP ${r.status}`);
+                const payload = await r.json();
+                if (!payload || payload.status !== true) return null;
+                if (isListing && Array.isArray(payload.items) && payload.items.length) {
+                    return { animeList: payload.items.map(x => ({
+                        title: x.title, name: x.title, slug: x.url, href: x.url,
+                        poster: x.poster, image: x.poster, source: 'mirainime'
+                    })) };
+                }
+                if (payload.episodes?.length || payload.embeds?.length || payload.title) {
+                    return { title: payload.title, name: payload.title, synopsis: payload.description,
+                        description: payload.description, episodeList: (payload.episodes || []).map((e, i) => ({
+                            title: e.title || `Episode ${i + 1}`, episode: e.title || `Episode ${i + 1}`,
+                            href: e.url, url: e.url, slug: e.url
+                        })), episodes: payload.episodes || [], embeds: payload.embeds || [], scraperSource: 'mirainime' };
+                }
+            } catch (err) { console.warn('[Nest Anime Scraper fallback]', path, err.message); }
+            return null;
+        }
+
         async function apiFetch(path, params = {}) {
             const controller = new AbortController();
             const timeoutMs = (CONFIG_SISTEM.request && CONFIG_SISTEM.request.timeout) || 15000;
             const timer = setTimeout(() => controller.abort(), timeoutMs);
+            let apiResult = null;
             try {
                 const urlObj = new URL('/api/proxy', window.location.origin);
                 urlObj.searchParams.set('path', path);
                 Object.entries(params).forEach(([k, v]) => {
                     if (v !== '' && v !== null && v !== undefined) urlObj.searchParams.set(k, String(v));
                 });
-                const res = await fetch(urlObj.toString(), {
-                    signal: controller.signal,
-                    headers: { 'Accept': 'application/json' }
-                });
+                const res = await fetch(urlObj.toString(), { signal: controller.signal, headers: { 'Accept': 'application/json' } });
                 if (!res.ok) throw new Error(`API ${res.status}`);
                 const json = await res.json();
-                if (!json) return null;
-                return json.data !== undefined ? json.data : json;
+                if (json) apiResult = json.data !== undefined ? json.data : json;
+                // Empty list/detail is also considered a failed API result for fallback purposes.
+                const unwrapped = apiResult && (apiResult.data !== undefined ? apiResult.data : apiResult);
+                const looksEmpty = !unwrapped || (Array.isArray(unwrapped) && unwrapped.length === 0) ||
+                    (typeof unwrapped === 'object' && !Array.isArray(unwrapped) && Object.keys(unwrapped).length === 0);
+                if (!looksEmpty) return apiResult;
+                console.warn('[Nest Anime API] Empty payload, trying scraper:', path);
             } catch (err) {
-                console.warn('[Nest Anime API]', path, err.message);
-                return null;
-            } finally {
-                clearTimeout(timer);
-            }
+                console.warn('[Nest Anime API] REST failed, trying scraper:', path, err.message);
+            } finally { clearTimeout(timer); }
+            const fallback = await scrapeFallback(path, params);
+            return fallback || apiResult;
         }
 
         function extractList(raw, keys = []) {
@@ -1413,7 +1458,7 @@
                 let titleObj = e.title || e.eps || e.episode || e.name || '';
                 if(typeof titleObj === 'object') titleObj = '';
                 const match = String(titleObj).match(/\d+(\.\d+)?/);
-                let numDisplay = match ? match[0] : String(currentDetailEps.length - i);
+                let numDisplay = match ? match[0] : String(i + 1);
 
                 const stateClass = isCurrent ? 'ep-active' : (isRead ? 'ep-read' : 'ep-unread');
                 return `<button class="hm-ep-box hm-interactive ${stateClass}" onclick="hmPlayStreamIdx(${i})">${escapeHTML(numDisplay)}</button>`;

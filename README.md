@@ -1,27 +1,21 @@
-# Nest Stream — Anime-only + Vercel
+# Nest Stream — Anime-only + Vercel (fallback build)
 
-## Isi
-- `animanga.html`: UI asal yang dipangkas dari tampilan Manhwa.
-- `config.js`: daftar sumber anime saja.
-- `api/proxy.js`: serverless proxy untuk Sanka REST API, allowlist path dan timeout.
-- `api/scrape.js`: serverless HTML scraper generik untuk sumber anime yang didaftarkan.
-- `scrapers/`: file scraper yang disertakan pengguna sebagai referensi/legacy.
+## Perubahan
+- Frontend mencoba REST API Sanka terlebih dahulu.
+- Jika REST API error atau payload kosong, frontend mencoba scraper HTML MiraiNime melalui `/api/scrape` untuk listing/detail/episode yang bisa dipetakan.
+- Perbaikan nomor episode fallback: gunakan nomor dari judul bila tersedia, jika tidak gunakan urutan episode, bukan menghitung mundur.
+- Endpoint serverless tetap membatasi domain scraper ke daftar allowlist dan proxy REST ke domain Sanka.
 
-## Deploy
-1. Push folder ini ke repository Git.
-2. Import repository di Vercel, Framework Preset: Other.
-3. Build Command kosong; Output Directory kosong (root).
-4. Deploy.
+## Deploy Vercel
+1. Upload seluruh folder ke repository Git.
+2. Import repository di Vercel, preset `Other`.
+3. Build command kosong; output directory kosong/root.
+4. Deploy. Vercel akan memasang dependency dari `package.json`.
 
-Node.js 20+ diperlukan. Dependency `cheerio` dipasang oleh Vercel dari `package.json`.
-
-## API
+## Endpoint
 - `/api/proxy?path=%2Fanime%2Fhome`
-- `/api/proxy?path=%2Fanime%2Fsamehadaku%2Fongoing&page=1`
 - `/api/scrape?source=mirainime`
 - `/api/scrape?source=mirainime&url=https%3A%2F%2Fmirainime.com%2Fanime%2F...`
 
-`api/proxy` membatasi upstream ke `https://www.sankavollerei.web.id` agar tidak menjadi open proxy. `api/scrape` membatasi domain ke daftar sumber di dalam file.
-
-## Catatan integrasi
-Frontend utama tetap memakai bentuk endpoint Sanka yang sudah ada. Scraper HTML adalah endpoint server-side terpisah untuk sumber yang memerlukan parsing HTML; struktur situs pihak ketiga dapat berubah dan selector generik mungkin perlu disesuaikan. Pengujian live memerlukan deploy dan akses ke sumber upstream.
+## Batasan yang perlu diketahui
+Fallback scraper saat ini baru dikonfigurasi untuk MiraiNime sebagai sumber pertama. Selector HTML bisa berubah sewaktu-waktu dan URL halaman episode/video dari tiap situs tidak seragam. Penolakan iframe oleh host video tidak bisa diselesaikan dengan proxy HTML; gunakan server embed yang memang mengizinkan pemutaran. Pengujian statis tidak membuktikan bahwa situs upstream saat ini dapat diakses atau bahwa setiap episode dapat diputar live.
