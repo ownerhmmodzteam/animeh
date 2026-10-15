@@ -1,1 +1,12 @@
-{"name":"nest-nime","version":"3.0.0","private":true,"scripts":{"start":"node server.js","dev":"vercel dev"},"engines":{"node":">=18"},"dependencies":{"cheerio":"^1.0.0"}}
+{
+  "name": "neststream-anime-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Anime-only Nest Stream frontend and Vercel serverless API",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  }
+}

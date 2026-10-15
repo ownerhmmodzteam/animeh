@@ -1,0 +1,13 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const html = fs.readFileSync('animanga.html', 'utf8');
+const config = fs.readFileSync('config.js', 'utf8');
+assert.match(html, /\/api\/proxy/);
+assert.match(html, /function hmLoadHomeData/);
+assert.match(html, /function hmLoadDetail/);
+assert.match(html, /function hmPlayStreamIdx/);
+assert.doesNotMatch(html, /id="hmViewManhwaHome"/);
+assert.doesNotMatch(html, /id="hmViewManhwaDetail"/);
+assert.doesNotMatch(html, /id="hmViewManhwaReader"/);
+assert.doesNotMatch(config, /comic_sources/);
+console.log('Static smoke tests passed');

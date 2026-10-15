@@ -1,38 +1,27 @@
-# Nest Nime v3 — multi-sumber, dark theme, Vercel serverless
+# Nest Stream — Anime-only + Vercel
 
-Sumber scraper langsung: **Mirainime**, **AnimeIndo**, **AnimeSail** (logika dari scraper milik user).
-Sumber REST API (Sanka Vollerei `/anime/:source/...`): samehadaku, animekuindo, kusonime, nimegami, oploverz, winbu, animasu, alqanime, animekompi, kura — adapter di `lib/sources/sanka.js`.
-Debug respons asli API: `/api/anime?src=samehadaku&action=raw&path=/home` (ganti `SANKA_BASE` lewat env var kalau domain berubah).
-Tidak ada database / data statis: semua data di-scrape live dan di-cache 5 menit.
+## Isi
+- `animanga.html`: UI asal yang dipangkas dari tampilan Manhwa.
+- `config.js`: daftar sumber anime saja.
+- `api/proxy.js`: serverless proxy untuk Sanka REST API, allowlist path dan timeout.
+- `api/scrape.js`: serverless HTML scraper generik untuk sumber anime yang didaftarkan.
+- `scrapers/`: file scraper yang disertakan pengguna sebagai referensi/legacy.
 
-## Struktur
-- `public/index.html` — UI dark (skeleton, hero, detail, player video/iframe, favorit, riwayat, pemilih sumber)
-- `api/anime.js` — satu router: `?src=mirainime|animeindo|animesail&action=home|search|detail|episode|download|sources`
-- `api/embed.js` — mode proxy iframe (untuk player yang memblokir iframe / butuh Referer sumber; terisolasi CSP sandbox, blokir IP privat)
-- `lib/norm.js` — normalisasi semua data: URL (https, //, data:), iframe (URL/HTML/ter-escape/base64), judul, nomor episode, stream (iframe/video/hls)
-- `api/player.js` — halaman player mini untuk iframe (video direct/HLS, no-referrer, auto-fallback ke proxy)
-- `api/stream.js` — proxy video ber-Referer sumber + Range (anti-Forbidden); SSRF-safe via `lib/net.js`
-- `api/img.js` — proxy poster (fallback kalau hotlink diblokir; hanya host sumber)
-- `lib/sources/*.js` — scraper per sumber (cheerio): `home, search, detail, episode, (download)`
-- `lib/http.js` — fetch + cache + retry
-- `server.js` — server lokal (public/ + /api/*) untuk Termux/VPS
+## Deploy
+1. Push folder ini ke repository Git.
+2. Import repository di Vercel, Framework Preset: Other.
+3. Build Command kosong; Output Directory kosong (root).
+4. Deploy.
 
-## Jalankan
-```
-npm install
-npm start               # http://localhost:3000
-```
-Vercel: `vercel` / `vercel --prod`. Root Directory = folder yang berisi `api/` dan `public/`.
+Node.js 20+ diperlukan. Dependency `cheerio` dipasang oleh Vercel dari `package.json`.
 
-## Contoh API
-- `/api/anime?src=mirainime&action=home&page=1`
-- `/api/anime?src=mirainime&action=search&q=naruto`
-- `/api/anime?src=mirainime&action=detail&id=<slug>`
-- `/api/anime?src=mirainime&action=episode&id=<slug>:<no>`  → streams[] (video/iframe)
-- `/api/anime?src=mirainime&action=download&id=<slug>:<no>` → link download per resolusi
-- AnimeIndo/AnimeSail: `id` = path halaman (mis. `/anime/xxx/`), dikembalikan oleh `home`/`search`.
+## API
+- `/api/proxy?path=%2Fanime%2Fhome`
+- `/api/proxy?path=%2Fanime%2Fsamehadaku%2Fongoing&page=1`
+- `/api/scrape?source=mirainime`
+- `/api/scrape?source=mirainime&url=https%3A%2F%2Fmirainime.com%2Fanime%2F...`
 
+`api/proxy` membatasi upstream ke `https://www.sankavollerei.web.id` agar tidak menjadi open proxy. `api/scrape` membatasi domain ke daftar sumber di dalam file.
 
-## Catatan stream
-Semua `streams[]` dari API selalu bertipe `iframe`: video direct/HLS dibungkus `/api/player?u=...`, Google Drive & YouTube diubah ke URL embed. Klien cukup merender `<iframe src=url>` — tidak perlu player `<video>` sendiri.
-Daftar episode Mirainime digabung dari HTML + JSON `/anime/{slug}/download?ajax=1` (semua halaman) supaya tombol Mulai selalu punya episode.
+## Catatan integrasi
+Frontend utama tetap memakai bentuk endpoint Sanka yang sudah ada. Scraper HTML adalah endpoint server-side terpisah untuk sumber yang memerlukan parsing HTML; struktur situs pihak ketiga dapat berubah dan selector generik mungkin perlu disesuaikan. Pengujian live memerlukan deploy dan akses ke sumber upstream.
